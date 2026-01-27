@@ -19,17 +19,14 @@
     .task-card { transition: transform .15s ease; }
     .task-card:active { transform: scale(.99); }
 
-    /* Toast */
     #toast { transform: translateY(14px); opacity: 0; pointer-events: none; }
     #toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
 
-    /* ✅ iOS: Eingabetext sichtbar erzwingen */
     input, select {
       color: #0f172a !important;
       -webkit-text-fill-color: #0f172a !important;
     }
 
-    /* ✅ iOS: datetime-local sichtbar + getrennt */
     input[type="datetime-local"]{
       background: #f1f5f9 !important;
       border: 1px solid rgba(15,23,42,.10) !important;
@@ -40,15 +37,9 @@
       font-size: 14px !important;
       box-shadow: 0 1px 0 rgba(15,23,42,.04) inset;
     }
-    input[type="datetime-local"]::-webkit-datetime-edit {
-      color: #0f172a !important;
-      opacity: 1 !important;
-    }
-    input[type="datetime-local"]::-webkit-calendar-picker-indicator{
-      opacity: .85;
-    }
+    input[type="datetime-local"]::-webkit-datetime-edit { color: #0f172a !important; opacity: 1 !important; }
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator{ opacity: .85; }
 
-    /* Modal */
     #alarmModal.hidden { display:none; }
   </style>
 </head>
@@ -75,7 +66,7 @@
     </div>
   </div>
 
-  <!-- ✅ In-App Alarm Modal (funktioniert auch ohne Notifications) -->
+  <!-- In-App Alarm Modal -->
   <div id="alarmModal" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute left-0 right-0 top-24 px-5">
@@ -90,7 +81,7 @@
         </div>
 
         <p class="text-[11px] font-semibold text-slate-400 mt-3">
-          Hinweis: iPhone-Web-Notifications sind nicht immer zuverlässig. Dieses Popup ist der sichere Fallback.
+          In-App Alarm funktioniert nur, solange TaskHub offen ist. Für echte iOS Benachrichtigungen nutze „📅 In Kalender“.
         </p>
       </div>
     </div>
@@ -118,9 +109,8 @@
         </select>
       </div>
 
-      <!-- ✅ EIN Feld: Datum + Uhrzeit -->
       <div class="mb-3">
-        <label class="text-[11px] font-black uppercase text-slate-400">Datum & Uhrzeit</label>
+        <label class="text-[11px] font-black uppercase text-slate-400">Datum & Uhrzeit (optional)</label>
         <input id="taskWhen" type="datetime-local" class="mt-1" />
       </div>
 
@@ -133,7 +123,7 @@
       </button>
 
       <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Tipp: Wenn du Datum & Uhrzeit setzt, kann eine Erinnerung zu genau diesem Zeitpunkt ausgelöst werden (solange die App offen ist).
+        Für echte iOS Benachrichtigungen: Aufgabe → „📅 In Kalender“ → beim Speichern Kalender „TaskHub“ wählen.
       </p>
     </section>
 
@@ -168,12 +158,12 @@
 
         <button id="requestNotifyBtn"
           class="bg-slate-900 text-white rounded-xl px-3 py-2 text-sm font-extrabold active:bg-slate-800">
-          Erinnerungen aktivieren
+          Erinnerungen aktivieren (In-App)
         </button>
       </div>
 
       <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        iPhone: Notifications sind im Web nicht immer zuverlässig. Du bekommst deshalb zusätzlich ein In-App Alarm-Popup.
+        In-App Reminder klappt nur, solange TaskHub offen ist. Für echte iOS Notifications nutze „📅 In Kalender“ pro Aufgabe.
       </p>
     </section>
 
@@ -181,15 +171,13 @@
   </main>
 
   <script>
-    const KEY = "taskhub_when_v1";
+    const KEY = "taskhub_calendar_v1";
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
-
     let tasks = load();
 
-    // Toast
     let toastTimer=null;
     function toast(title, sub=""){
       $("toastText").textContent = title;
@@ -203,18 +191,6 @@
       return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
 
-    // Helpers for datetime-local
-    function nowPlusMinutes(min){
-      const d = new Date(Date.now() + min*60000);
-      const pad = (n) => String(n).padStart(2,"0");
-      const yyyy = d.getFullYear();
-      const mm = pad(d.getMonth()+1);
-      const dd = pad(d.getDate());
-      const hh = pad(d.getHours());
-      const mi = pad(d.getMinutes());
-      return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
-    }
-
     function parseWhen(value){
       if(!value) return null;
       const d = new Date(value);
@@ -224,6 +200,57 @@
     function formatWhen(d){
       const pad = (n)=>String(n).padStart(2,"0");
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // ✅ Kalender-Export (ICS) mit 1-Minuten Dauer + Alarm exakt zur Uhrzeit
+    function openCalendarEvent(task){
+      if(!task.when){
+        toast("Kein Termin gesetzt", "Bitte Datum & Uhrzeit setzen, dann erneut versuchen.");
+        return;
+      }
+
+      const start = new Date(task.when);
+      const end = new Date(task.when + 1*60000); // ✅ 1 Minute
+
+      const pad = (n)=>String(n).padStart(2,"0");
+      const toICSDate = (d) => {
+        const yyyy = d.getFullYear();
+        const mm = pad(d.getMonth()+1);
+        const dd = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const mi = pad(d.getMinutes());
+        return `${yyyy}${mm}${dd}T${hh}${mi}00`;
+      };
+
+      const title = `[TaskHub] ${(task.title || "Task").replace(/\n/g," ").trim()}`;
+      const desc = `Projekt: ${task.project}\n${task.notes ? ("Notiz: " + task.notes) : ""}\n\nErstellt mit TaskHub`;
+
+      const ics =
+`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//TaskHub//DE
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:${task.id}@taskhub
+DTSTAMP:${toICSDate(new Date())}
+DTSTART:${toICSDate(start)}
+DTEND:${toICSDate(end)}
+SUMMARY:${title}
+DESCRIPTION:${desc}
+BEGIN:VALARM
+TRIGGER:-PT0M
+ACTION:DISPLAY
+DESCRIPTION:${title}
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      window.location.href = url;
+
+      toast("Kalender öffnet…", "Beim Speichern Kalender „TaskHub“ auswählen ✅");
+      setTimeout(()=> URL.revokeObjectURL(url), 10000);
     }
 
     // Filters
@@ -250,7 +277,6 @@
         if(filter==="all" && a.done!==b.done) return a.done?1:-1;
         if(sortMode==="created") return b.createdAt-a.createdAt;
         if(sortMode==="prio") return a.prio-b.prio;
-        // smart/when: earliest first
         const aw = a.when ? a.when : 9e15;
         const bw = b.when ? b.when : 9e15;
         if(aw!==bw) return aw-bw;
@@ -299,8 +325,9 @@
               ${t.notes ? `<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
             </div>
 
-            <div class="flex gap-3 mt-2">
+            <div class="flex flex-wrap gap-3 mt-2 items-center">
               <button class="del text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="${t.id}">Löschen</button>
+              ${t.when ? `<button class="cal text-[10px] font-black uppercase text-indigo-600 active:scale-95" data-id="${t.id}">📅 In Kalender</button>` : ``}
             </div>
           </div>
         `;
@@ -326,6 +353,14 @@
           scheduleNextReminder();
         };
       });
+
+      document.querySelectorAll(".cal").forEach(btn=>{
+        btn.onclick = ()=>{
+          const id = btn.dataset.id;
+          const task = tasks.find(t=>t.id===id);
+          if(task) openCalendarEvent(task);
+        };
+      });
     }
 
     function renderAll(){
@@ -333,17 +368,16 @@
       renderList();
     }
 
-    // ----- Reminder (Notification + In-App modal)
+    // In-App Reminder (optional)
     let remindersEnabled = false;
     let reminderTimeout = null;
     let currentAlarmTaskId = null;
 
     function nextReminder(){
       const now = Date.now();
-      const candidates = tasks
+      return tasks
         .filter(t=>!t.done && t.when && t.when >= now)
-        .sort((a,b)=> a.when - b.when);
-      return candidates[0] || null;
+        .sort((a,b)=> a.when - b.when)[0] || null;
     }
 
     function scheduleNextReminder(){
@@ -352,65 +386,28 @@
 
       const nxt = nextReminder();
       if(!nxt){
-        toast("Erinnerungen aktiv", "Keine zukünftige Aufgabe mit Datum/Uhrzeit gefunden.");
+        toast("In-App aktiv", "Keine zukünftige Aufgabe mit Termin gefunden.");
         return;
       }
 
       const delay = Math.max(0, nxt.when - Date.now());
-      reminderTimeout = setTimeout(()=> fireAlarm(nxt), delay);
-      toast("Erinnerungen aktiv", `Nächste: ${nxt.title} um ${formatWhen(new Date(nxt.when))}`);
+      reminderTimeout = setTimeout(()=> {
+        currentAlarmTaskId = nxt.id;
+        $("alarmTitle").textContent = nxt.title;
+        $("alarmSub").textContent = `${nxt.project} · ${formatWhen(new Date(nxt.when))}`;
+        $("alarmModal").classList.remove("hidden");
+      }, delay);
+
+      toast("In-App aktiv", `Nächste: ${nxt.title} um ${formatWhen(new Date(nxt.when))}`);
     }
 
-    function fireAlarm(task){
-      // Notification (wenn möglich)
-      let notified = false;
-      if("Notification" in window && Notification.permission === "granted"){
-        try { new Notification("TaskHub – Erinnerung", { body: task.title }); notified = true; } catch {}
-      }
-      if(notified) toast("Erinnerung gesendet", task.title);
-
-      // Always show in-app alarm (safe)
-      currentAlarmTaskId = task.id;
-      $("alarmTitle").textContent = task.title;
-      $("alarmSub").textContent = `${task.project} · ${formatWhen(new Date(task.when))}`;
-      $("alarmModal").classList.remove("hidden");
-
-      // Plan next after user closes/done (prevents overlapping)
-    }
-
-    async function toggleReminders(){
-      if(!remindersEnabled){
-        remindersEnabled = true;
-
-        if("Notification" in window && Notification.permission === "default"){
-          try { await Notification.requestPermission(); } catch {}
-        }
-
-        if(!("Notification" in window) || Notification.permission !== "granted"){
-          toast("Erinnerungen aktiv", "Notifications evtl. nicht verfügbar. In-App Alarm funktioniert sicher.");
-        } else {
-          toast("Erinnerungen aktiv", "Notifications erlaubt ✅ + In-App Alarm");
-        }
-
-        $("requestNotifyBtn").textContent = "Erinnerungen: aktiv";
-        scheduleNextReminder();
-      } else {
-        remindersEnabled = false;
-        if(reminderTimeout) clearTimeout(reminderTimeout);
-        reminderTimeout = null;
-        $("requestNotifyBtn").textContent = "Erinnerungen aktivieren";
-        toast("Erinnerungen aus");
-      }
-    }
-
-    // Alarm modal buttons
     $("alarmCloseBtn").onclick = ()=>{
       $("alarmModal").classList.add("hidden");
       scheduleNextReminder();
     };
     $("alarmDoneBtn").onclick = ()=>{
       if(currentAlarmTaskId){
-        tasks = tasks.map(t => t.id===currentAlarmTaskId ? ({...t, done:true}) : t);
+        tasks = tasks.map(t=> t.id===currentAlarmTaskId ? ({...t, done:true}) : t);
         save(tasks);
         renderAll();
       }
@@ -418,7 +415,13 @@
       scheduleNextReminder();
     };
 
-    // Add task
+    function toggleReminders(){
+      remindersEnabled = !remindersEnabled;
+      $("requestNotifyBtn").textContent = remindersEnabled ? "In-App aktiv ✅" : "Erinnerungen aktivieren (In-App)";
+      toast(remindersEnabled ? "In-App Erinnerungen aktiv" : "In-App Erinnerungen aus");
+      scheduleNextReminder();
+    }
+
     function addTask(){
       const title = ($("taskTitle").value||"").trim();
       if(!title){
@@ -430,7 +433,7 @@
       const whenVal = $("taskWhen").value || "";
       const whenDate = parseWhen(whenVal);
 
-      const t = {
+      tasks.push({
         id: String(Date.now()),
         title,
         project: $("taskProject").value,
@@ -439,23 +442,18 @@
         notes: ($("taskNotes").value||"").trim(),
         done: false,
         createdAt: Date.now()
-      };
+      });
 
-      tasks.push(t);
       save(tasks);
-
       $("taskTitle").value="";
       $("taskWhen").value="";
       $("taskNotes").value="";
-
       renderAll();
       scheduleNextReminder();
-      toast("Aufgabe hinzugefügt", t.when ? `Reminder: ${formatWhen(new Date(t.when))}` : "Ohne Termin");
+      toast("Aufgabe hinzugefügt");
     }
 
-    // Startup
     window.addEventListener("load", ()=>{
-      // default filter style
       document.querySelectorAll(".filterBtn").forEach(btn=>{
         btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600";
       });
@@ -481,11 +479,8 @@
 
       $("requestNotifyBtn").addEventListener("click", toggleReminders);
 
-      // set default datetime to now+10min to make it easy to test
-      $("taskWhen").value = nowPlusMinutes(10);
-
       renderAll();
-      toast("Update aktiv ✅", "Datum/Uhrzeit jetzt als ein Feld + iPhone Fix");
+      toast("Bereit ✅", "Kalender-Reminder: „📅 In Kalender“ → Kalender „TaskHub“ wählen");
     });
   </script>
 </body>
