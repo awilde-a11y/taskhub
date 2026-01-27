@@ -21,6 +21,25 @@
 
     #toast { transform: translateY(14px); opacity: 0; pointer-events: none; }
     #toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+    /* ✅ iOS Fix: Date/Time Text sichtbar machen */
+    input[type="date"],
+    input[type="time"]{
+      color: #0f172a !important;              /* slate-900 */
+      background-color: #f1f5f9 !important;   /* slate-100 */
+      -webkit-text-fill-color: #0f172a !important;
+    }
+
+    input[type="date"]::-webkit-datetime-edit,
+    input[type="time"]::-webkit-datetime-edit{
+      color: #0f172a !important;
+      opacity: 1 !important;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator{
+      opacity: 0.75;
+    }
   </style>
 </head>
 
@@ -55,10 +74,10 @@
 
       <div class="grid grid-cols-2 gap-3 mb-3">
         <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
+          <option value="Inbox" selected>Inbox</option>
           <option value="Academy">Academy</option>
           <option value="HSE">HSE</option>
           <option value="Recruiting">Recruiting</option>
-          <option value="Inbox" selected>Inbox</option>
         </select>
 
         <select id="taskPrio" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
@@ -68,12 +87,19 @@
         </select>
       </div>
 
-      <!-- HIER ist die Änderung: Datum + Uhrzeit + Notiz -->
+      <!-- ✅ Datum + Uhrzeit (mit Labels) -->
       <div class="grid grid-cols-2 gap-3 mb-3">
-        <input id="taskDeadline" type="date"
-          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
-        <input id="taskTime" type="time"
-          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
+        <div class="space-y-1">
+          <label class="text-[11px] font-black uppercase text-slate-400">Datum</label>
+          <input id="taskDeadline" type="date"
+            class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-black uppercase text-slate-400">Uhrzeit</label>
+          <input id="taskTime" type="time"
+            class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none">
+        </div>
       </div>
 
       <input id="taskNotes" type="text" placeholder="Notiz (optional)"
@@ -100,10 +126,10 @@
       <div class="grid grid-cols-2 gap-3">
         <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
           <option value="all">Alle Projekte</option>
+          <option value="Inbox">Inbox</option>
           <option value="Academy">Academy</option>
           <option value="HSE">HSE</option>
           <option value="Recruiting">Recruiting</option>
-          <option value="Inbox">Inbox</option>
         </select>
 
         <input id="searchInput" type="search" placeholder="Suchen..."
@@ -134,7 +160,7 @@
 
   <script>
     // ---------- Storage ----------
-    const KEY = "taskhub_with_time_v1";
+    const KEY = "taskhub_with_time_v2";
 
     function load() {
       try { return JSON.parse(localStorage.getItem(KEY)) || []; }
@@ -143,7 +169,6 @@
     function save(tasks) { localStorage.setItem(KEY, JSON.stringify(tasks)); }
 
     let tasks = load();
-
     const $ = (id) => document.getElementById(id);
 
     // ---------- Toast ----------
@@ -159,8 +184,6 @@
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
-
-    function todayISO() { return new Date().toISOString().slice(0,10); }
 
     function renderStats() {
       const open = tasks.filter(t => !t.done).length;
@@ -188,9 +211,7 @@
       const timeKey = (t) => t.time ? t.time.replace(":","") : "9999";
 
       list.sort((a,b) => {
-        // open first
         if (filter === "all" && a.done !== b.done) return a.done ? 1 : -1;
-
         if (sortMode === "created") return b.createdAt - a.createdAt;
         if (sortMode === "prio") return a.prio - b.prio;
         if (sortMode === "deadline") {
@@ -198,8 +219,6 @@
           if (d !== 0) return d;
           return timeKey(a).localeCompare(timeKey(b)) || (a.prio - b.prio);
         }
-
-        // smart
         const d = deadlineKey(a).localeCompare(deadlineKey(b));
         if (d !== 0) return d;
         const t = timeKey(a).localeCompare(timeKey(b));
@@ -318,11 +337,7 @@
       }
 
       const delay = Math.max(0, nxt.d.getTime() - Date.now());
-
-      reminderTimeout = setTimeout(() => {
-        fireReminder(nxt.t);
-      }, delay);
-
+      reminderTimeout = setTimeout(() => fireReminder(nxt.t), delay);
       toast("Erinnerungen aktiv", `Nächste: ${nxt.t.title} um ${nxt.t.time}`);
     }
 
@@ -334,7 +349,6 @@
       if ("Notification" in window && Notification.permission === "granted") {
         try { new Notification(title, { body }); notified = true; } catch {}
       }
-
       if (!notified) toast("Erinnerung", body);
       else toast("Erinnerung gesendet", body);
 
@@ -383,12 +397,8 @@
 
       tasks.push({
         id: String(Date.now()),
-        title,
-        project,
-        prio,
-        date,
-        time,
-        notes,
+        title, project, prio,
+        date, time, notes,
         done: false,
         createdAt: Date.now()
       });
@@ -433,7 +443,7 @@
       $("requestNotifyBtn").addEventListener("click", toggleReminders);
 
       renderAll();
-      toast("Bereit", "Datum + Uhrzeit = Reminder möglich");
+      toast("Bereit", "Datum & Uhrzeit sind jetzt gut sichtbar ✅");
     });
   </script>
 </body>
