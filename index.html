@@ -22,30 +22,25 @@
     #toast { transform: translateY(14px); opacity: 0; pointer-events: none; }
     #toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
 
-    input, select {
-      color: #0f172a !important;
-      -webkit-text-fill-color: #0f172a !important;
-    }
+    /* iOS Eingabetext sichtbar */
+    input, select { color:#0f172a !important; -webkit-text-fill-color:#0f172a !important; }
 
     input[type="datetime-local"]{
-      background: #f1f5f9 !important;
-      border: 1px solid rgba(15,23,42,.10) !important;
-      border-radius: 14px !important;
-      padding: 10px 12px !important;
-      width: 100% !important;
-      font-weight: 700 !important;
-      font-size: 14px !important;
-      box-shadow: 0 1px 0 rgba(15,23,42,.04) inset;
+      background:#f1f5f9 !important;
+      border:1px solid rgba(15,23,42,.10) !important;
+      border-radius:14px !important;
+      padding:10px 12px !important;
+      width:100% !important;
+      font-weight:800 !important;
+      font-size:14px !important;
+      box-shadow:0 1px 0 rgba(15,23,42,.04) inset;
     }
-    input[type="datetime-local"]::-webkit-datetime-edit { color: #0f172a !important; opacity: 1 !important; }
-    input[type="datetime-local"]::-webkit-calendar-picker-indicator{ opacity: .85; }
-
-    #alarmModal.hidden { display:none; }
+    input[type="datetime-local"]::-webkit-datetime-edit { color:#0f172a !important; opacity:1 !important; }
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity:.85; }
   </style>
 </head>
 
 <body class="bg-[#f8fafc] min-h-screen pb-24">
-
   <header class="sticky top-0 z-20 bg-[#f8fafc]/80 backdrop-blur-md px-6 py-6 flex justify-between items-center">
     <div>
       <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
@@ -66,30 +61,9 @@
     </div>
   </div>
 
-  <!-- In-App Alarm Modal -->
-  <div id="alarmModal" class="hidden fixed inset-0 z-50">
-    <div class="absolute inset-0 bg-black/40"></div>
-    <div class="absolute left-0 right-0 top-24 px-5">
-      <div class="max-w-md mx-auto glass rounded-3xl p-5 shadow-xl">
-        <p class="text-sm font-black uppercase text-slate-400">Erinnerung</p>
-        <p id="alarmTitle" class="text-xl font-extrabold text-slate-900 mt-1"></p>
-        <p id="alarmSub" class="text-sm font-bold text-slate-600 mt-2"></p>
-
-        <div class="grid grid-cols-2 gap-3 mt-5">
-          <button id="alarmDoneBtn" class="bg-indigo-600 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Erledigt</button>
-          <button id="alarmCloseBtn" class="bg-slate-900 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Schließen</button>
-        </div>
-
-        <p class="text-[11px] font-semibold text-slate-400 mt-3">
-          In-App Alarm funktioniert nur, solange TaskHub offen ist. Für echte iOS Benachrichtigungen nutze „📅 In Kalender“.
-        </p>
-      </div>
-    </div>
-  </div>
-
   <main class="max-w-md mx-auto px-5">
 
-    <!-- ADD TASK -->
+    <!-- ADD -->
     <section class="glass rounded-3xl p-5 shadow-sm mb-6">
       <input id="taskTitle" type="text" placeholder="Neue Aufgabe tippen..."
         class="w-full text-lg font-semibold bg-transparent border-none focus:ring-0 outline-none mb-4 text-slate-800">
@@ -117,8 +91,7 @@
       <input id="taskNotes" type="text" placeholder="Notiz (optional)"
         class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200 mb-4">
 
-      <button id="addTaskBtn"
-        class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
+      <button id="addTaskBtn" class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
         Hinzufügen
       </button>
 
@@ -127,7 +100,7 @@
       </p>
     </section>
 
-    <!-- FILTERS -->
+    <!-- FILTER -->
     <section class="glass rounded-3xl p-4 shadow-sm mb-6">
       <div class="flex items-center gap-2 mb-3">
         <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="active">Offen</button>
@@ -156,28 +129,24 @@
           <option value="created">Sort: Neu → Alt</option>
         </select>
 
-        <button id="requestNotifyBtn"
-          class="bg-slate-900 text-white rounded-xl px-3 py-2 text-sm font-extrabold active:bg-slate-800">
-          Erinnerungen aktivieren (In-App)
-        </button>
+        <div class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 border border-slate-200 flex items-center justify-center">
+          Kalender: TaskHub
+        </div>
       </div>
-
-      <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        In-App Reminder klappt nur, solange TaskHub offen ist. Für echte iOS Notifications nutze „📅 In Kalender“ pro Aufgabe.
-      </p>
     </section>
 
     <div id="taskList" class="space-y-4 mb-10"></div>
   </main>
 
   <script>
-    const KEY = "taskhub_calendar_v1";
+    const KEY = "taskhub_calendar_checkbox_v1";
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
     let tasks = load();
 
+    // Toast
     let toastTimer=null;
     function toast(title, sub=""){
       $("toastText").textContent = title;
@@ -202,15 +171,15 @@
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    // ✅ Kalender-Export (ICS) mit 1-Minuten Dauer + Alarm exakt zur Uhrzeit
+    // ✅ Kalender-ICS (1 Minute + Alarm exakt)
     function openCalendarEvent(task){
       if(!task.when){
-        toast("Kein Termin gesetzt", "Bitte Datum & Uhrzeit setzen, dann erneut versuchen.");
+        toast("Kein Termin", "Bitte Datum & Uhrzeit setzen.");
         return;
       }
 
       const start = new Date(task.when);
-      const end = new Date(task.when + 1*60000); // ✅ 1 Minute
+      const end = new Date(task.when + 1*60000);
 
       const pad = (n)=>String(n).padStart(2,"0");
       const toICSDate = (d) => {
@@ -249,7 +218,7 @@ END:VCALENDAR`;
       const url = URL.createObjectURL(blob);
       window.location.href = url;
 
-      toast("Kalender öffnet…", "Beim Speichern Kalender „TaskHub“ auswählen ✅");
+      toast("Kalender öffnet…", "Beim Speichern Kalender „TaskHub“ wählen ✅");
       setTimeout(()=> URL.revokeObjectURL(url), 10000);
     }
 
@@ -304,10 +273,10 @@ END:VCALENDAR`;
       }
 
       visible.forEach(t=>{
+        const whenText = t.when ? formatWhen(new Date(t.when)) : "Kein Termin";
+
         const card = document.createElement("div");
         card.className = `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ${t.done ? "opacity-40" : ""}`;
-
-        const whenText = t.when ? formatWhen(new Date(t.when)) : "Kein Termin";
 
         card.innerHTML = `
           <button class="toggle h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center" data-id="${t.id}">
@@ -340,7 +309,6 @@ END:VCALENDAR`;
           tasks = tasks.map(t=> t.id===id ? ({...t, done: !t.done}) : t);
           save(tasks);
           renderAll();
-          scheduleNextReminder();
         };
       });
 
@@ -350,7 +318,6 @@ END:VCALENDAR`;
           tasks = tasks.filter(t=>t.id!==id);
           save(tasks);
           renderAll();
-          scheduleNextReminder();
         };
       });
 
@@ -366,60 +333,6 @@ END:VCALENDAR`;
     function renderAll(){
       renderStats();
       renderList();
-    }
-
-    // In-App Reminder (optional)
-    let remindersEnabled = false;
-    let reminderTimeout = null;
-    let currentAlarmTaskId = null;
-
-    function nextReminder(){
-      const now = Date.now();
-      return tasks
-        .filter(t=>!t.done && t.when && t.when >= now)
-        .sort((a,b)=> a.when - b.when)[0] || null;
-    }
-
-    function scheduleNextReminder(){
-      if(reminderTimeout){ clearTimeout(reminderTimeout); reminderTimeout=null; }
-      if(!remindersEnabled) return;
-
-      const nxt = nextReminder();
-      if(!nxt){
-        toast("In-App aktiv", "Keine zukünftige Aufgabe mit Termin gefunden.");
-        return;
-      }
-
-      const delay = Math.max(0, nxt.when - Date.now());
-      reminderTimeout = setTimeout(()=> {
-        currentAlarmTaskId = nxt.id;
-        $("alarmTitle").textContent = nxt.title;
-        $("alarmSub").textContent = `${nxt.project} · ${formatWhen(new Date(nxt.when))}`;
-        $("alarmModal").classList.remove("hidden");
-      }, delay);
-
-      toast("In-App aktiv", `Nächste: ${nxt.title} um ${formatWhen(new Date(nxt.when))}`);
-    }
-
-    $("alarmCloseBtn").onclick = ()=>{
-      $("alarmModal").classList.add("hidden");
-      scheduleNextReminder();
-    };
-    $("alarmDoneBtn").onclick = ()=>{
-      if(currentAlarmTaskId){
-        tasks = tasks.map(t=> t.id===currentAlarmTaskId ? ({...t, done:true}) : t);
-        save(tasks);
-        renderAll();
-      }
-      $("alarmModal").classList.add("hidden");
-      scheduleNextReminder();
-    };
-
-    function toggleReminders(){
-      remindersEnabled = !remindersEnabled;
-      $("requestNotifyBtn").textContent = remindersEnabled ? "In-App aktiv ✅" : "Erinnerungen aktivieren (In-App)";
-      toast(remindersEnabled ? "In-App Erinnerungen aktiv" : "In-App Erinnerungen aus");
-      scheduleNextReminder();
     }
 
     function addTask(){
@@ -449,7 +362,6 @@ END:VCALENDAR`;
       $("taskWhen").value="";
       $("taskNotes").value="";
       renderAll();
-      scheduleNextReminder();
       toast("Aufgabe hinzugefügt");
     }
 
@@ -477,10 +389,8 @@ END:VCALENDAR`;
       $("addTaskBtn").addEventListener("click", addTask);
       $("taskTitle").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addTask(); });
 
-      $("requestNotifyBtn").addEventListener("click", toggleReminders);
-
       renderAll();
-      toast("Bereit ✅", "Kalender-Reminder: „📅 In Kalender“ → Kalender „TaskHub“ wählen");
+      toast("Bereit ✅", "📅 In Kalender erscheint bei Aufgaben mit Termin.");
     });
   </script>
 </body>
