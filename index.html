@@ -5,35 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My TaskHub</title>
 
-  <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#0f172a" />
-
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
     body { font-family: 'Inter', sans-serif; }
 
-    .priority-1 { border-left: 6px solid #ef4444; } /* Hoch */
-    .priority-2 { border-left: 6px solid #f59e0b; } /* Mittel */
-    .priority-3 { border-left: 6px solid #10b981; } /* Niedrig */
+    .priority-1 { border-left: 6px solid #ef4444; }
+    .priority-2 { border-left: 6px solid #f59e0b; }
+    .priority-3 { border-left: 6px solid #10b981; }
 
-    .glass {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 0, 0, 0.06);
-    }
-    .task-card { transition: transform 0.15s ease; }
-    .task-card:active { transform: scale(0.99); }
+    .glass { background: rgba(255,255,255,.95); backdrop-filter: blur(12px); border: 1px solid rgba(0,0,0,.06); }
+    .task-card { transition: transform .15s ease; }
+    .task-card:active { transform: scale(.99); }
 
-    /* Toast */
-    #toast { transform: translateY(16px); opacity: 0; pointer-events: none; }
+    #toast { transform: translateY(14px); opacity: 0; pointer-events: none; }
     #toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
   </style>
 </head>
 
 <body class="bg-[#f8fafc] min-h-screen pb-24">
-  <!-- HEADER -->
+
   <header class="sticky top-0 z-20 bg-[#f8fafc]/80 backdrop-blur-md px-6 py-6 flex justify-between items-center">
     <div>
       <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
@@ -41,51 +33,42 @@
       </h1>
       <p id="stats" class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">Lade...</p>
     </div>
-
-    <button id="openMenuBtn"
-      class="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center active:scale-95 transition"
-      aria-label="Menü öffnen">
-      <span class="text-indigo-600 text-sm font-extrabold">MT</span>
-    </button>
+    <div class="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+      <span class="text-indigo-600 text-sm font-bold">MT</span>
+    </div>
   </header>
+
+  <!-- Toast -->
+  <div class="fixed left-0 right-0 bottom-6 z-50 px-5">
+    <div id="toast" class="max-w-md mx-auto glass rounded-2xl px-4 py-3 shadow-lg border border-slate-200 transition-all duration-200">
+      <p id="toastText" class="text-sm font-extrabold text-slate-900"></p>
+      <p id="toastSub" class="text-xs font-semibold text-slate-500 mt-1"></p>
+    </div>
+  </div>
 
   <main class="max-w-md mx-auto px-5">
 
-    <!-- TOAST -->
-    <div class="fixed left-0 right-0 bottom-6 z-50 px-5">
-      <div id="toast" class="max-w-md mx-auto glass rounded-2xl px-4 py-3 shadow-lg border border-slate-200 transition-all duration-200">
-        <p id="toastText" class="text-sm font-extrabold text-slate-900"></p>
-        <p id="toastSub" class="text-xs font-semibold text-slate-500 mt-1"></p>
-      </div>
-    </div>
-
-    <!-- INFO BANNER (FÄLLIG HEUTE) -->
-    <div id="dueBanner" class="hidden glass rounded-3xl p-4 shadow-sm border border-slate-200 mb-4">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <p class="text-sm font-extrabold text-slate-900">Heute fällig</p>
-          <p id="dueBannerText" class="text-xs font-semibold text-slate-500 mt-1"></p>
-        </div>
-        <button id="dismissDueBanner" class="text-xs font-black uppercase text-slate-400 active:scale-95">OK</button>
-      </div>
-    </div>
-
     <!-- ADD TASK -->
     <section class="glass rounded-3xl p-5 shadow-sm border border-slate-200 mb-6">
-      <input id="taskTitle" type="text" placeholder="Aufgabentitel..."
+      <input id="taskTitle" type="text" placeholder="Neue Aufgabe tippen..."
         class="w-full text-lg font-semibold bg-transparent border-none focus:ring-0 outline-none mb-4 text-slate-800">
 
       <div class="grid grid-cols-2 gap-3 mb-3">
-        <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none"></select>
+        <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
+          <option value="Academy">Academy</option>
+          <option value="HSE">HSE</option>
+          <option value="Recruiting">Recruiting</option>
+          <option value="Inbox" selected>Inbox</option>
+        </select>
 
         <select id="taskPrio" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
           <option value="1">🔥 Hoch</option>
-          <option value="2">⚡ Mittel</option>
-          <option value="3" selected>🌱 Niedrig</option>
+          <option value="2" selected>⚡ Mittel</option>
+          <option value="3">🌱 Niedrig</option>
         </select>
       </div>
 
-      <!-- Datum + Uhrzeit -->
+      <!-- HIER ist die Änderung: Datum + Uhrzeit + Notiz -->
       <div class="grid grid-cols-2 gap-3 mb-3">
         <input id="taskDeadline" type="date"
           class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
@@ -93,13 +76,17 @@
           class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
       </div>
 
-      <input id="taskNotes" type="text" placeholder="Details / Notiz (optional)"
+      <input id="taskNotes" type="text" placeholder="Notiz (optional)"
         class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none mb-4">
 
       <button id="addTaskBtn"
         class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
         Hinzufügen
       </button>
+
+      <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
+        Tipp: Setze Datum + Uhrzeit, dann kann eine Erinnerung genau zu diesem Zeitpunkt ausgelöst werden.
+      </p>
     </section>
 
     <!-- FILTERS -->
@@ -111,7 +98,13 @@
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none"></select>
+        <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
+          <option value="all">Alle Projekte</option>
+          <option value="Academy">Academy</option>
+          <option value="HSE">HSE</option>
+          <option value="Recruiting">Recruiting</option>
+          <option value="Inbox">Inbox</option>
+        </select>
 
         <input id="searchInput" type="search" placeholder="Suchen..."
           class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
@@ -132,115 +125,36 @@
       </div>
 
       <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Uhrzeit-Erinnerungen funktionieren zuverlässig, solange die Seite/App offen ist. (Ohne Server gibt es keine echten Push-Notifications im komplett geschlossenen Zustand.)
+        Ohne Server funktionieren Erinnerungen zuverlässig, solange die Seite/App offen ist. (Hintergrund-Push im komplett geschlossenen Zustand ist im Web eingeschränkt.)
       </p>
     </section>
 
-    <!-- TASK LIST -->
     <div id="taskList" class="space-y-4 mb-10"></div>
   </main>
 
-  <!-- MENU (BOTTOM SHEET) -->
-  <div id="sheetBackdrop" class="hidden fixed inset-0 bg-black/30 z-30"></div>
-  <div id="sheet" class="fixed left-0 right-0 bottom-0 z-40 translate-y-full transition-transform duration-200">
-    <div class="max-w-md mx-auto px-5 pb-6">
-      <div class="glass rounded-3xl p-4 shadow-lg border border-slate-200">
-        <div class="flex justify-between items-center mb-3">
-          <p class="text-sm font-extrabold text-slate-900">Menü</p>
-          <button id="closeMenuBtn" class="text-xs font-black uppercase text-slate-400 active:scale-95">Schließen</button>
-        </div>
-
-        <!-- Projects -->
-        <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100 mb-3">
-          <p class="text-xs font-black uppercase text-slate-400 mb-2">Projekte / Ordner</p>
-
-          <div class="flex gap-2 mb-2">
-            <input id="newProjectName" type="text" placeholder="Neues Projekt (z.B. Academy)"
-              class="flex-1 bg-white rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none border border-slate-200" />
-            <button id="addProjectBtn"
-              class="bg-slate-900 text-white rounded-xl px-3 py-2 text-sm font-extrabold active:bg-slate-800">
-              +
-            </button>
-          </div>
-
-          <div id="projectList" class="space-y-2"></div>
-        </div>
-
-        <!-- Data -->
-        <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100">
-          <p class="text-xs font-black uppercase text-slate-400 mb-2">Daten</p>
-
-          <div class="grid grid-cols-2 gap-2">
-            <button id="exportBtn"
-              class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-extrabold text-slate-900 active:bg-slate-100">
-              Export
-            </button>
-
-            <label class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-extrabold text-slate-900 active:bg-slate-100 text-center cursor-pointer">
-              Import
-              <input id="importInput" type="file" accept="application/json" class="hidden" />
-            </label>
-
-            <button id="resetBtn"
-              class="col-span-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-sm font-extrabold text-red-600 active:bg-red-100">
-              Alles löschen
-            </button>
-          </div>
-
-          <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-            Export = JSON Backup. Import überschreibt deine Daten.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
-    /***********************
-     * TaskHub v2 (Reminder + time)
-     ***********************/
+    // ---------- Storage ----------
+    const KEY = "taskhub_with_time_v1";
 
-    // ---- Helpers / Compatibility
-    function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
-    const STORAGE_KEY = "taskhub:v2";
-
-    const DEFAULT_STATE = {
-      projects: [
-        { id: "inbox", name: "Inbox", locked: true },
-        { id: "academy", name: "Academy", locked: false },
-        { id: "hse", name: "HSE", locked: false },
-        { id: "recruiting", name: "Recruiting", locked: false }
-      ],
-      tasks: [],
-      ui: {
-        filter: "active",
-        projectFilter: "all",
-        search: "",
-        sortMode: "smart",
-        dismissedDueBannerFor: "",
-        remindersEnabled: false
-      }
-    };
-
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return deepClone(DEFAULT_STATE);
-        const parsed = JSON.parse(raw);
-        return {
-          projects: Array.isArray(parsed.projects) ? parsed.projects : deepClone(DEFAULT_STATE.projects),
-          tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
-          ui: Object.assign({}, deepClone(DEFAULT_STATE.ui), (parsed.ui || {}))
-        };
-      } catch {
-        return deepClone(DEFAULT_STATE);
-      }
+    function load() {
+      try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+      catch { return []; }
     }
+    function save(tasks) { localStorage.setItem(KEY, JSON.stringify(tasks)); }
 
-    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    let tasks = load();
 
-    let state = loadState();
     const $ = (id) => document.getElementById(id);
+
+    // ---------- Toast ----------
+    let toastTimer = null;
+    function toast(title, sub="") {
+      $("toastText").textContent = title;
+      $("toastSub").textContent = sub;
+      $("toast").classList.add("show");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $("toast").classList.remove("show"), 2500);
+    }
 
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -248,444 +162,62 @@
 
     function todayISO() { return new Date().toISOString().slice(0,10); }
 
-    function prioLabel(p) { return p === 1 ? "🔥 Hoch" : p === 2 ? "⚡ Mittel" : "🌱 Niedrig"; }
-
-    function getProjectName(id) {
-      const p = state.projects.find(x => x.id === id);
-      return p ? p.name : "Unbekannt";
+    function renderStats() {
+      const open = tasks.filter(t => !t.done).length;
+      $("stats").textContent = `${open} offen · ${tasks.length - open} erledigt`;
     }
 
-    // ---- Toast
-    let toastTimer = null;
-    function toast(title, sub="") {
-      const t = $("toast");
-      $("toastText").textContent = title;
-      $("toastSub").textContent = sub;
-      t.classList.add("show");
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => t.classList.remove("show"), 2500);
-    }
-
-    // ---- Menu
-    function openSheet() {
-      $("sheetBackdrop").classList.remove("hidden");
-      $("sheet").style.transform = "translateY(0)";
-    }
-    function closeSheet() {
-      $("sheetBackdrop").classList.add("hidden");
-      $("sheet").style.transform = "translateY(100%)";
-    }
-
-    // ---- Projects
-    function addProject(name) {
-      const clean = (name || "").trim();
-      if (!clean) return;
-
-      const base = clean.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-      let id = base || ("p-" + Date.now());
-      while (state.projects.some(p => p.id === id)) id = id + "-1";
-
-      state.projects.push({ id, name: clean, locked: false });
-      saveState();
-      renderAll();
-      toast("Projekt erstellt", clean);
-    }
-
-    function deleteProject(id) {
-      const p = state.projects.find(x => x.id === id);
-      if (!p || p.locked) return;
-
-      state.tasks = state.tasks.map(t => t.projectId === id ? Object.assign({}, t, { projectId: "inbox" }) : t);
-      state.projects = state.projects.filter(x => x.id !== id);
-      if (state.ui.projectFilter === id) state.ui.projectFilter = "all";
-
-      saveState();
-      renderAll();
-      toast("Projekt gelöscht", "Aufgaben → Inbox verschoben");
-    }
-
-    // ---- Tasks
-    function addTask() {
-      const title = ($("taskTitle").value || "").trim();
-      const prio = parseInt($("taskPrio").value, 10);
-      const deadline = $("taskDeadline").value || "";
-      const time = $("taskTime").value || ""; // NEW
-      const notes = ($("taskNotes").value || "").trim();
-      const projectId = $("taskProject").value;
-
-      if (!title) {
-        toast("Titel fehlt", "Bitte oben einen Aufgabentitel eingeben.");
-        $("taskTitle").focus();
-        return;
-      }
-
-      state.tasks.push({
-        id: String(Date.now()),
-        title,
-        notes,
-        prio: [1,2,3].includes(prio) ? prio : 3,
-        deadline, // yyyy-mm-dd or ""
-        time,     // HH:MM or ""
-        projectId,
-        completed: false,
-        createdAt: Date.now(),
-        completedAt: null,
-        remindedAt: null // last reminder timestamp, to prevent duplicates
-      });
-
-      $("taskTitle").value = "";
-      $("taskDeadline").value = "";
-      $("taskTime").value = "";
-      $("taskNotes").value = "";
-
-      saveState();
-      renderAll();
-      toast("Aufgabe hinzugefügt", "Tip: Uhrzeit setzen für Reminder");
-
-      // if reminders enabled, reschedule
-      scheduleNextReminder();
-    }
-
-    function toggleComplete(id) {
-      state.tasks = state.tasks.map(t => {
-        if (t.id !== id) return t;
-        const next = !t.completed;
-        return Object.assign({}, t, { completed: next, completedAt: next ? Date.now() : null });
-      });
-      saveState();
-      renderAll();
-      scheduleNextReminder();
-    }
-
-    function postponeTask(id) {
-      state.tasks = state.tasks.map(t => {
-        if (t.id !== id) return t;
-        const d = t.deadline ? new Date(t.deadline) : new Date();
-        if (isNaN(d.getTime())) return t;
-        d.setDate(d.getDate() + 1);
-        const iso = d.toISOString().slice(0,10);
-        return Object.assign({}, t, { deadline: iso });
-      });
-      saveState();
-      renderAll();
-      scheduleNextReminder();
-    }
-
-    function deleteTask(id) {
-      state.tasks = state.tasks.filter(t => t.id !== id);
-      saveState();
-      renderAll();
-      scheduleNextReminder();
-    }
-
-    function editTask(id) {
-      const t = state.tasks.find(x => x.id === id);
-      if (!t) return;
-      const newTitle = prompt("Aufgabe bearbeiten:", t.title);
-      if (newTitle === null) return;
-      const clean = String(newTitle).trim();
-      if (!clean) return;
-
-      state.tasks = state.tasks.map(x => x.id === id ? Object.assign({}, x, { title: clean }) : x);
-      saveState();
-      renderAll();
-      scheduleNextReminder();
-    }
-
-    // ---- Filtering & Sorting
     function getVisibleTasks() {
-      const f = state.ui.filter;
-      const pf = state.ui.projectFilter;
-      const q = (state.ui.search || "").trim().toLowerCase();
-      let tasks = state.tasks.slice();
+      const filter = document.querySelector(".filterBtn.bg-slate-900")?.dataset.filter || "active";
+      const proj = $("projectFilter").value;
+      const q = ($("searchInput").value || "").trim().toLowerCase();
+      const sortMode = $("sortMode").value;
 
-      if (f === "active") tasks = tasks.filter(t => !t.completed);
-      if (f === "completed") tasks = tasks.filter(t => t.completed);
-      if (pf !== "all") tasks = tasks.filter(t => t.projectId === pf);
+      let list = tasks.slice();
 
-      if (q) {
-        tasks = tasks.filter(t => (t.title||"").toLowerCase().includes(q) || (t.notes||"").toLowerCase().includes(q));
-      }
+      if (filter === "active") list = list.filter(t => !t.done);
+      if (filter === "completed") list = list.filter(t => t.done);
 
-      const mode = state.ui.sortMode;
-      const today = todayISO();
+      if (proj !== "all") list = list.filter(t => t.project === proj);
 
-      function deadlineKey(t) { return t.deadline ? t.deadline.replace(/-/g,"") : "99999999"; }
-      function timeKey(t) { return t.time ? t.time.replace(":","") : "9999"; }
+      if (q) list = list.filter(t =>
+        (t.title||"").toLowerCase().includes(q) || (t.notes||"").toLowerCase().includes(q)
+      );
 
-      tasks.sort((a,b) => {
-        if (state.ui.filter === "all" && a.completed !== b.completed) return a.completed ? 1 : -1;
+      const deadlineKey = (t) => t.date ? t.date.replace(/-/g,"") : "99999999";
+      const timeKey = (t) => t.time ? t.time.replace(":","") : "9999";
 
-        if (mode === "created") return b.createdAt - a.createdAt;
-        if (mode === "prio") return a.prio - b.prio;
-        if (mode === "deadline") {
-          const dl = deadlineKey(a).localeCompare(deadlineKey(b));
-          if (dl !== 0) return dl;
+      list.sort((a,b) => {
+        // open first
+        if (filter === "all" && a.done !== b.done) return a.done ? 1 : -1;
+
+        if (sortMode === "created") return b.createdAt - a.createdAt;
+        if (sortMode === "prio") return a.prio - b.prio;
+        if (sortMode === "deadline") {
+          const d = deadlineKey(a).localeCompare(deadlineKey(b));
+          if (d !== 0) return d;
           return timeKey(a).localeCompare(timeKey(b)) || (a.prio - b.prio);
         }
 
-        // smart: today -> overdue -> next deadline/time -> prio -> newest
-        const aToday = a.deadline && a.deadline === today;
-        const bToday = b.deadline && b.deadline === today;
-        if (aToday !== bToday) return aToday ? -1 : 1;
-
-        const aOver = a.deadline && a.deadline < today && !a.completed;
-        const bOver = b.deadline && b.deadline < today && !b.completed;
-        if (aOver !== bOver) return aOver ? -1 : 1;
-
-        const dls = deadlineKey(a).localeCompare(deadlineKey(b));
-        if (dls !== 0) return dls;
-
-        const tks = timeKey(a).localeCompare(timeKey(b));
-        if (tks !== 0) return tks;
-
-        const pr = a.prio - b.prio;
-        if (pr !== 0) return pr;
-
+        // smart
+        const d = deadlineKey(a).localeCompare(deadlineKey(b));
+        if (d !== 0) return d;
+        const t = timeKey(a).localeCompare(timeKey(b));
+        if (t !== 0) return t;
+        const p = a.prio - b.prio;
+        if (p !== 0) return p;
         return b.createdAt - a.createdAt;
       });
 
-      return tasks;
+      return list;
     }
 
-    // ---- Due today banner
-    function dueTodayTasks() {
-      const today = todayISO();
-      return state.tasks.filter(t => !t.completed && t.deadline === today);
-    }
-
-    function showDueBanner() {
-      const today = todayISO();
-      const due = dueTodayTasks();
-      const dismissedFor = state.ui.dismissedDueBannerFor;
-
-      if (due.length === 0 || dismissedFor === today) {
-        $("dueBanner").classList.add("hidden");
-        return;
-      }
-
-      const titles = due.slice(0,3).map(t => t.title).join(", ");
-      $("dueBannerText").innerText = `${due.length} Aufgabe(n) sind heute fällig: ${titles}${due.length > 3 ? " …" : ""}`;
-      $("dueBanner").classList.remove("hidden");
-    }
-
-    // ---- Reminder engine (timer)
-    let reminderTimeout = null;
-
-    function taskReminderDate(t) {
-      // only if deadline + time exist
-      if (!t.deadline || !t.time) return null;
-      const d = new Date(`${t.deadline}T${t.time}:00`);
-      if (isNaN(d.getTime())) return null;
-      return d;
-    }
-
-    function nextReminderTask() {
-      const now = Date.now();
-      const candidates = state.tasks
-        .filter(t => !t.completed)
-        .map(t => ({ t, d: taskReminderDate(t) }))
-        .filter(x => x.d && x.d.getTime() >= now)
-        .sort((a,b) => a.d.getTime() - b.d.getTime());
-
-      return candidates.length ? candidates[0] : null;
-    }
-
-    function setNotifyButtonState() {
-      const btn = $("requestNotifyBtn");
-      const enabled = !!state.ui.remindersEnabled;
-      if (!enabled) {
-        btn.textContent = "Erinnerungen aktivieren";
-        return;
-      }
-
-      // show permission state
-      if (!("Notification" in window)) {
-        btn.textContent = "Erinnerungen: nicht möglich";
-        return;
-      }
-      if (Notification.permission === "denied") {
-        btn.textContent = "Erinnerungen: blockiert";
-        return;
-      }
-      btn.textContent = "Erinnerungen: aktiv";
-    }
-
-    function scheduleNextReminder() {
-      // clear
-      if (reminderTimeout) {
-        clearTimeout(reminderTimeout);
-        reminderTimeout = null;
-      }
-
-      setNotifyButtonState();
-      if (!state.ui.remindersEnabled) return;
-
-      const nxt = nextReminderTask();
-      if (!nxt) {
-        toast("Erinnerungen aktiv", "Keine zukünftigen Uhrzeit-Reminder gesetzt.");
-        return;
-      }
-
-      const when = nxt.d.getTime();
-      const delay = Math.max(0, when - Date.now());
-
-      // safety cap (some browsers dislike huge timeouts). If > 24h, re-check periodically.
-      const cap = 24 * 60 * 60 * 1000;
-      const effectiveDelay = Math.min(delay, cap);
-
-      reminderTimeout = setTimeout(() => {
-        // if we capped, reschedule again
-        if (delay > cap) {
-          scheduleNextReminder();
-          return;
-        }
-
-        fireReminder(nxt.t);
-      }, effectiveDelay);
-
-      const hhmm = nxt.t.time;
-      toast("Erinnerungen aktiv", `Nächste Erinnerung: ${nxt.t.title} um ${hhmm}`);
-    }
-
-    function fireReminder(task) {
-      const now = Date.now();
-
-      // prevent double fire within 60s
-      if (task.remindedAt && (now - task.remindedAt) < 60000) {
-        scheduleNextReminder();
-        return;
-      }
-
-      // mark remindedAt
-      state.tasks = state.tasks.map(t => t.id === task.id ? Object.assign({}, t, { remindedAt: now }) : t);
-      saveState();
-      renderStats();
-
-      const title = "My TaskHub – Erinnerung";
-      const body = `${task.title} (${getProjectName(task.projectId)})`;
-
-      let notified = false;
-      if ("Notification" in window && Notification.permission === "granted") {
-        try {
-          new Notification(title, { body });
-          notified = true;
-        } catch {}
-      }
-
-      if (!notified) {
-        toast("Erinnerung", body);
-      } else {
-        toast("Erinnerung gesendet", body);
-      }
-
-      scheduleNextReminder();
-    }
-
-    async function enableRemindersFlow() {
-      // toggle on/off
-      if (state.ui.remindersEnabled) {
-        state.ui.remindersEnabled = false;
-        saveState();
-        setNotifyButtonState();
-        if (reminderTimeout) { clearTimeout(reminderTimeout); reminderTimeout = null; }
-        toast("Erinnerungen deaktiviert");
-        return;
-      }
-
-      state.ui.remindersEnabled = true;
-      saveState();
-
-      if (!("Notification" in window)) {
-        toast("Erinnerungen aktiv", "Browser unterstützt keine Notifications. Ich nutze In-App Hinweise.");
-        scheduleNextReminder();
-        return;
-      }
-
-      try {
-        if (Notification.permission === "default") {
-          const res = await Notification.requestPermission();
-          if (res === "denied") {
-            toast("Blockiert", "Bitte in Browser-Einstellungen Notifications erlauben.");
-          } else {
-            toast("Erlaubt", "Notifications sind aktiv.");
-          }
-        } else if (Notification.permission === "denied") {
-          toast("Blockiert", "Bitte in Browser-Einstellungen Notifications erlauben.");
-        } else {
-          toast("Erlaubt", "Notifications sind aktiv.");
-        }
-      } catch {
-        toast("Hinweis", "Notification-Permission konnte nicht abgefragt werden.");
-      }
-
-      scheduleNextReminder();
-    }
-
-    // ---- Render
-    function renderProjectsIntoSelects() {
-      $("taskProject").innerHTML = state.projects.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("");
-      $("projectFilter").innerHTML =
-        `<option value="all">Alle Projekte</option>` +
-        state.projects.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("");
-
-      $("projectFilter").value = state.ui.projectFilter;
-      $("taskProject").value = "inbox";
-    }
-
-    function renderProjectListInMenu() {
-      const wrap = $("projectList");
-      wrap.innerHTML = "";
-
-      state.projects.forEach(p => {
-        const row = document.createElement("div");
-        row.className = "flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2";
-
-        row.innerHTML = `
-          <div class="min-w-0">
-            <p class="text-sm font-extrabold text-slate-900 truncate">${escapeHtml(p.name)}</p>
-            <p class="text-[11px] font-semibold text-slate-400">ID: ${escapeHtml(p.id)}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            ${p.locked ? `<span class="text-[10px] font-black uppercase text-slate-400">Fix</span>` :
-              `<button class="deleteProjectBtn text-[10px] font-black uppercase text-red-500 active:scale-95" data-id="${escapeHtml(p.id)}">Löschen</button>`}
-          </div>
-        `;
-        wrap.appendChild(row);
-      });
-
-      document.querySelectorAll(".deleteProjectBtn").forEach(btn => {
-        btn.addEventListener("click", () => deleteProject(btn.dataset.id));
-      });
-    }
-
-    function renderFilterButtons() {
-      document.querySelectorAll(".filterBtn").forEach(btn => {
-        const active = btn.dataset.filter === state.ui.filter;
-        btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase " +
-          (active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600");
-      });
-    }
-
-    function renderStats() {
-      const total = state.tasks.length;
-      const open = state.tasks.filter(t => !t.completed).length;
-      const done = total - open;
-      const todayDue = dueTodayTasks().length;
-
-      let line = `${open} offen · ${done} erledigt`;
-      if (todayDue > 0) line += ` · ${todayDue} heute fällig`;
-      $("stats").innerText = line;
-    }
-
-    function renderTasks() {
+    function renderList() {
       const list = $("taskList");
       list.innerHTML = "";
+      const visible = getVisibleTasks();
 
-      const tasks = getVisibleTasks();
-      const today = todayISO();
-
-      if (tasks.length === 0) {
+      if (visible.length === 0) {
         list.innerHTML = `
           <div class="glass rounded-3xl p-6 border border-slate-200 text-center">
             <p class="text-sm font-extrabold text-slate-900">Keine Aufgaben</p>
@@ -695,196 +227,213 @@
         return;
       }
 
-      tasks.forEach(t => {
-        const due = t.deadline ? t.deadline : "Kein Datum";
-        const time = t.time ? t.time : "";
-        const isToday = t.deadline && t.deadline === today;
-        const isOverdue = t.deadline && t.deadline < today && !t.completed;
-
+      visible.forEach(t => {
         const card = document.createElement("div");
-        card.className =
-          `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ` +
-          (t.completed ? "opacity-40" : "") +
-          (isOverdue ? " ring-2 ring-red-200" : "") +
-          (isToday ? " ring-2 ring-amber-200" : "");
+        card.className = `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ${t.done ? "opacity-40" : ""}`;
 
         card.innerHTML = `
-          <button class="toggleBtn h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center"
-            aria-label="Erledigt umschalten" data-id="${escapeHtml(t.id)}">
-            ${t.completed ? '<div class="h-4 w-4 bg-indigo-500 rounded-full"></div>' : ''}
+          <button class="toggle h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center" data-id="${t.id}">
+            ${t.done ? '<div class="h-4 w-4 bg-indigo-500 rounded-full"></div>' : ''}
           </button>
 
           <div class="flex-grow min-w-0">
             <div class="flex items-start justify-between gap-2">
-              <h3 class="font-extrabold text-slate-800 ${t.completed ? 'line-through' : ''} truncate">
-                ${escapeHtml(t.title)}
-              </h3>
-              <span class="text-[10px] font-black uppercase text-slate-400 flex-shrink-0">
-                ${escapeHtml(getProjectName(t.projectId))}
-              </span>
+              <h3 class="font-extrabold text-slate-800 ${t.done ? "line-through" : ""} truncate">${escapeHtml(t.title)}</h3>
+              <span class="text-[10px] font-black uppercase text-slate-400 flex-shrink-0">${escapeHtml(t.project)}</span>
             </div>
 
             <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">
-              <span class="text-[10px] font-black uppercase text-slate-400">📅 ${escapeHtml(due)}${isToday ? " · HEUTE" : ""}${isOverdue ? " · ÜBERFÄLLIG" : ""}</span>
-              ${time ? `<span class="text-[10px] font-black uppercase text-slate-400">⏰ ${escapeHtml(time)}</span>` : ""}
-              <span class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(prioLabel(t.prio))}</span>
+              <span class="text-[10px] font-black uppercase text-slate-400">📅 ${t.date || "Kein Datum"}</span>
+              ${t.time ? `<span class="text-[10px] font-black uppercase text-slate-400">⏰ ${t.time}</span>` : ""}
               ${t.notes ? `<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
             </div>
 
             <div class="flex gap-3 mt-2">
-              <button class="editBtn text-[10px] font-black uppercase text-slate-600 active:scale-95" data-id="${escapeHtml(t.id)}">Bearbeiten</button>
-              <button class="postponeBtn text-[10px] font-black uppercase text-indigo-600 active:scale-95" data-id="${escapeHtml(t.id)}">+1 Tag</button>
-              <button class="deleteBtn text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="${escapeHtml(t.id)}">Löschen</button>
+              <button class="del text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="${t.id}">Löschen</button>
             </div>
           </div>
         `;
+
         list.appendChild(card);
       });
 
-      document.querySelectorAll(".toggleBtn").forEach(b => b.addEventListener("click", () => toggleComplete(b.dataset.id)));
-      document.querySelectorAll(".postponeBtn").forEach(b => b.addEventListener("click", () => postponeTask(b.dataset.id)));
-      document.querySelectorAll(".deleteBtn").forEach(b => b.addEventListener("click", () => deleteTask(b.dataset.id)));
-      document.querySelectorAll(".editBtn").forEach(b => b.addEventListener("click", () => editTask(b.dataset.id)));
+      document.querySelectorAll(".toggle").forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          tasks = tasks.map(t => t.id === id ? ({...t, done: !t.done}) : t);
+          save(tasks);
+          renderAll();
+          scheduleNextReminder();
+        };
+      });
+
+      document.querySelectorAll(".del").forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          tasks = tasks.filter(t => t.id !== id);
+          save(tasks);
+          renderAll();
+          scheduleNextReminder();
+        };
+      });
     }
 
     function renderAll() {
-      renderProjectsIntoSelects();
-      renderProjectListInMenu();
-      renderFilterButtons();
-
-      $("projectFilter").value = state.ui.projectFilter;
-      $("searchInput").value = state.ui.search;
-      $("sortMode").value = state.ui.sortMode;
-
       renderStats();
-      renderTasks();
-      showDueBanner();
-      setNotifyButtonState();
+      renderList();
     }
 
-    // ---- Export / Import / Reset
-    function exportData() {
-      const data = JSON.stringify(state, null, 2);
-      const blob = new Blob([data], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `taskhub-backup-${todayISO()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+    // ---------- Reminder engine ----------
+    let remindersEnabled = false;
+    let reminderTimeout = null;
+
+    function taskReminderDate(t) {
+      if (!t.date || !t.time) return null;
+      const d = new Date(`${t.date}T${t.time}:00`);
+      return isNaN(d.getTime()) ? null : d;
     }
 
-    function importData(file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = JSON.parse(reader.result);
-          if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
-          if (!Array.isArray(parsed.projects) || !Array.isArray(parsed.tasks)) throw new Error("Missing fields");
+    function nextReminderTask() {
+      const now = Date.now();
+      const candidates = tasks
+        .filter(t => !t.done)
+        .map(t => ({ t, d: taskReminderDate(t) }))
+        .filter(x => x.d && x.d.getTime() >= now)
+        .sort((a,b) => a.d.getTime() - b.d.getTime());
 
-          state = {
-            projects: parsed.projects,
-            tasks: parsed.tasks,
-            ui: Object.assign({}, deepClone(DEFAULT_STATE.ui), (parsed.ui || {}))
-          };
-          saveState();
-          renderAll();
-          scheduleNextReminder();
-          toast("Import erfolgreich ✅");
-        } catch (e) {
-          toast("Import fehlgeschlagen", e.message);
+      return candidates.length ? candidates[0] : null;
+    }
+
+    function scheduleNextReminder() {
+      if (reminderTimeout) {
+        clearTimeout(reminderTimeout);
+        reminderTimeout = null;
+      }
+      if (!remindersEnabled) return;
+
+      const nxt = nextReminderTask();
+      if (!nxt) {
+        toast("Erinnerungen aktiv", "Keine Aufgabe mit Datum + Uhrzeit gefunden.");
+        return;
+      }
+
+      const delay = Math.max(0, nxt.d.getTime() - Date.now());
+
+      reminderTimeout = setTimeout(() => {
+        fireReminder(nxt.t);
+      }, delay);
+
+      toast("Erinnerungen aktiv", `Nächste: ${nxt.t.title} um ${nxt.t.time}`);
+    }
+
+    function fireReminder(task) {
+      const title = "TaskHub – Erinnerung";
+      const body = `${task.title} (${task.project})`;
+
+      let notified = false;
+      if ("Notification" in window && Notification.permission === "granted") {
+        try { new Notification(title, { body }); notified = true; } catch {}
+      }
+
+      if (!notified) toast("Erinnerung", body);
+      else toast("Erinnerung gesendet", body);
+
+      scheduleNextReminder();
+    }
+
+    async function toggleReminders() {
+      if (!remindersEnabled) {
+        remindersEnabled = true;
+
+        if ("Notification" in window && Notification.permission === "default") {
+          try { await Notification.requestPermission(); } catch {}
         }
-      };
-      reader.readAsText(file);
+
+        if ("Notification" in window && Notification.permission === "denied") {
+          toast("Hinweis", "Notifications sind blockiert – ich nutze In-App Hinweise.");
+        } else {
+          toast("Erinnerungen aktiv", "Ich erinnere dich zur eingestellten Uhrzeit.");
+        }
+
+        $("requestNotifyBtn").textContent = "Erinnerungen: aktiv";
+        scheduleNextReminder();
+      } else {
+        remindersEnabled = false;
+        if (reminderTimeout) clearTimeout(reminderTimeout);
+        reminderTimeout = null;
+        $("requestNotifyBtn").textContent = "Erinnerungen aktivieren";
+        toast("Erinnerungen aus");
+      }
     }
 
-    function resetAll() {
-      if (!confirm("Wirklich ALLES löschen?")) return;
-      state = deepClone(DEFAULT_STATE);
-      saveState();
+    // ---------- Add Task ----------
+    function addTask() {
+      const title = ($("taskTitle").value || "").trim();
+      const project = $("taskProject").value;
+      const prio = parseInt($("taskPrio").value, 10) || 3;
+      const date = $("taskDeadline").value || "";
+      const time = $("taskTime").value || "";
+      const notes = ($("taskNotes").value || "").trim();
+
+      if (!title) {
+        toast("Titel fehlt", "Bitte oben einen Titel eingeben.");
+        $("taskTitle").focus();
+        return;
+      }
+
+      tasks.push({
+        id: String(Date.now()),
+        title,
+        project,
+        prio,
+        date,
+        time,
+        notes,
+        done: false,
+        createdAt: Date.now()
+      });
+
+      $("taskTitle").value = "";
+      $("taskDeadline").value = "";
+      $("taskTime").value = "";
+      $("taskNotes").value = "";
+
+      save(tasks);
       renderAll();
       scheduleNextReminder();
-      toast("Alles gelöscht");
+      toast("Aufgabe hinzugefügt");
     }
 
-    // ---- Startup & Events
+    // ---------- Bind UI ----------
     window.addEventListener("load", () => {
-      $("addTaskBtn").addEventListener("click", addTask);
-      $("taskTitle").addEventListener("keydown", (e) => { if (e.key === "Enter") addTask(); });
+      // Default filter style
+      document.querySelectorAll(".filterBtn").forEach(btn => {
+        btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600";
+      });
+      const first = document.querySelector('.filterBtn[data-filter="active"]');
+      if (first) first.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-900 text-white";
 
       document.querySelectorAll(".filterBtn").forEach(btn => {
         btn.addEventListener("click", () => {
-          state.ui.filter = btn.dataset.filter;
-          saveState();
+          document.querySelectorAll(".filterBtn").forEach(b => b.className =
+            "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600"
+          );
+          btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-900 text-white";
           renderAll();
         });
       });
 
-      $("projectFilter").addEventListener("change", () => {
-        state.ui.projectFilter = $("projectFilter").value;
-        saveState();
-        renderAll();
-      });
+      $("projectFilter").addEventListener("change", renderAll);
+      $("searchInput").addEventListener("input", renderAll);
+      $("sortMode").addEventListener("change", renderAll);
 
-      $("searchInput").addEventListener("input", () => {
-        state.ui.search = $("searchInput").value;
-        saveState();
-        renderAll();
-      });
+      $("addTaskBtn").addEventListener("click", addTask);
+      $("taskTitle").addEventListener("keydown", (e) => { if (e.key === "Enter") addTask(); });
 
-      $("sortMode").addEventListener("change", () => {
-        state.ui.sortMode = $("sortMode").value;
-        saveState();
-        renderAll();
-      });
-
-      $("requestNotifyBtn").addEventListener("click", enableRemindersFlow);
-
-      $("dismissDueBanner").addEventListener("click", () => {
-        state.ui.dismissedDueBannerFor = todayISO();
-        saveState();
-        showDueBanner();
-      });
-
-      // Menu
-      $("openMenuBtn").addEventListener("click", openSheet);
-      $("closeMenuBtn").addEventListener("click", closeSheet);
-      $("sheetBackdrop").addEventListener("click", closeSheet);
-
-      $("addProjectBtn").addEventListener("click", () => {
-        addProject($("newProjectName").value);
-        $("newProjectName").value = "";
-      });
-      $("newProjectName").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          addProject($("newProjectName").value);
-          $("newProjectName").value = "";
-        }
-      });
-
-      $("exportBtn").addEventListener("click", exportData);
-      $("importInput").addEventListener("change", (e) => {
-        const f = e.target.files && e.target.files[0];
-        if (f) importData(f);
-        e.target.value = "";
-      });
-      $("resetBtn").addEventListener("click", resetAll);
-
-      // Service worker register (optional offline)
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js").catch(() => {});
-      }
-
-      // periodic banner + reminder re-check
-      setInterval(() => {
-        showDueBanner();
-        if (state.ui.remindersEnabled) scheduleNextReminder();
-      }, 60 * 1000);
+      $("requestNotifyBtn").addEventListener("click", toggleReminders);
 
       renderAll();
-      scheduleNextReminder();
+      toast("Bereit", "Datum + Uhrzeit = Reminder möglich");
     });
   </script>
 </body>
