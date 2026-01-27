@@ -4,754 +4,195 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My TaskHub</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#0f172a" />
-
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
     body { font-family: 'Inter', sans-serif; }
-
-    .priority-1 { border-left: 6px solid #ef4444; } /* Hoch */
-    .priority-2 { border-left: 6px solid #f59e0b; } /* Mittel */
-    .priority-3 { border-left: 6px solid #10b981; } /* Niedrig */
-
-    .glass {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 0, 0, 0.06);
-    }
-
-    .task-card { transition: transform 0.15s ease; }
-    .task-card:active { transform: scale(0.99); }
-    input[type="date"] { -webkit-appearance: none; }
+    .priority-1 { border-left: 6px solid #ef4444; }
+    .priority-2 { border-left: 6px solid #f59e0b; }
+    .priority-3 { border-left: 6px solid #10b981; }
+    .glass { background: rgba(255,255,255,.95); backdrop-filter: blur(12px); border: 1px solid rgba(0,0,0,.06); }
   </style>
 </head>
 
 <body class="bg-[#f8fafc] min-h-screen pb-24">
-  <!-- HEADER -->
-  <header class="sticky top-0 z-20 bg-[#f8fafc]/80 backdrop-blur-md px-6 py-6 flex justify-between items-center">
-    <div>
-      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
-        My <span class="text-indigo-600">TaskHub</span>
-      </h1>
-      <p id="stats" class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">Lade...</p>
-    </div>
-
-    <button id="openMenuBtn" class="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center active:scale-95 transition"
-      aria-label="Menü öffnen">
-      <span class="text-indigo-600 text-sm font-extrabold">MT</span>
-    </button>
+  <header class="sticky top-0 z-20 bg-[#f8fafc]/80 backdrop-blur-md px-6 py-6">
+    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
+      My <span class="text-indigo-600">TaskHub</span>
+    </h1>
+    <p id="stats" class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">Lade…</p>
   </header>
 
   <main class="max-w-md mx-auto px-5">
-    <!-- INFO BANNER -->
-    <div id="dueBanner" class="hidden glass rounded-3xl p-4 shadow-sm border border-slate-200 mb-4">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <p class="text-sm font-extrabold text-slate-900">Heute fällig</p>
-          <p id="dueBannerText" class="text-xs font-semibold text-slate-500 mt-1"></p>
-        </div>
-        <button id="dismissDueBanner" class="text-xs font-black uppercase text-slate-400 active:scale-95">OK</button>
-      </div>
-    </div>
-
-    <!-- ADD TASK -->
     <section class="glass rounded-3xl p-5 shadow-sm border border-slate-200 mb-6">
-      <input id="taskTitle" type="text" placeholder="Neue Aufgabe tippen..."
-        class="w-full text-lg font-semibold bg-transparent border-none focus:ring-0 outline-none mb-4 text-slate-800" />
+      <input id="title" type="text" placeholder="Neue Aufgabe tippen…"
+        class="w-full text-lg font-semibold bg-transparent border-none focus:ring-0 outline-none mb-4 text-slate-800">
 
       <div class="grid grid-cols-2 gap-3 mb-3">
-        <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none"></select>
+        <select id="project" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
+          <option value="Academy">Academy</option>
+          <option value="HSE">HSE</option>
+          <option value="Recruiting">Recruiting</option>
+          <option value="Inbox" selected>Inbox</option>
+        </select>
 
-        <select id="taskPrio" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
+        <select id="prio" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
           <option value="1">🔥 Hoch</option>
-          <option value="2">⚡ Mittel</option>
-          <option value="3" selected>🌱 Niedrig</option>
+          <option value="2" selected>⚡ Mittel</option>
+          <option value="3">🌱 Niedrig</option>
         </select>
       </div>
 
       <div class="grid grid-cols-2 gap-3 mb-4">
-        <input id="taskDeadline" type="date" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none" />
-        <input id="taskNotes" type="text" placeholder="Notiz (optional)"
-          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none" />
+        <input id="deadline" type="date" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
+        <input id="notes" type="text" placeholder="Notiz (optional)"
+          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
       </div>
 
-      <button id="addTaskBtn" class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
+      <button id="addBtn" class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
         Hinzufügen
       </button>
+
+      <p id="msg" class="hidden mt-3 text-sm font-bold text-red-500"></p>
     </section>
 
-    <!-- FILTERS -->
-    <section class="glass rounded-3xl p-4 shadow-sm border border-slate-200 mb-6">
-      <div class="flex items-center gap-2 mb-3">
-        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="active">Offen</button>
-        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="all">Alle</button>
-        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="completed">Erledigt</button>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none"></select>
-
-        <input id="searchInput" type="search" placeholder="Suchen..."
-          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none" />
-      </div>
-
-      <div class="grid grid-cols-2 gap-3 mt-3">
-        <select id="sortMode" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
-          <option value="smart" selected>Sort: Smart</option>
-          <option value="deadline">Sort: Datum</option>
-          <option value="prio">Sort: Priorität</option>
-          <option value="created">Sort: Neu → Alt</option>
-        </select>
-
-        <button id="requestNotifyBtn"
-          class="bg-slate-900 text-white rounded-xl px-3 py-2 text-sm font-extrabold active:bg-slate-800">
-          Erinnerungen aktivieren
-        </button>
-      </div>
-
-      <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Hinweis: Benachrichtigungen funktionieren je nach Handy/Browser unterschiedlich. “Heute fällig” siehst du immer in der App.
-      </p>
-    </section>
-
-    <!-- TASK LIST -->
-    <div id="taskList" class="space-y-4 mb-10"></div>
+    <div id="list" class="space-y-4"></div>
   </main>
 
-  <!-- MENU (BOTTOM SHEET) -->
-  <div id="sheetBackdrop" class="hidden fixed inset-0 bg-black/30 z-30"></div>
-  <div id="sheet" class="fixed left-0 right-0 bottom-0 z-40 translate-y-full transition-transform duration-200">
-    <div class="max-w-md mx-auto px-5 pb-6">
-      <div class="glass rounded-3xl p-4 shadow-lg border border-slate-200">
-        <div class="flex justify-between items-center mb-3">
-          <p class="text-sm font-extrabold text-slate-900">Menü</p>
-          <button id="closeMenuBtn" class="text-xs font-black uppercase text-slate-400 active:scale-95">Schließen</button>
-        </div>
-
-        <!-- Projects -->
-        <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100 mb-3">
-          <p class="text-xs font-black uppercase text-slate-400 mb-2">Projekte / Ordner</p>
-
-          <div class="flex gap-2 mb-2">
-            <input id="newProjectName" type="text" placeholder="Neues Projekt (z.B. Academy)"
-              class="flex-1 bg-white rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none border border-slate-200" />
-            <button id="addProjectBtn"
-              class="bg-slate-900 text-white rounded-xl px-3 py-2 text-sm font-extrabold active:bg-slate-800">
-              +
-            </button>
-          </div>
-
-          <div id="projectList" class="space-y-2"></div>
-        </div>
-
-        <!-- Data -->
-        <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100">
-          <p class="text-xs font-black uppercase text-slate-400 mb-2">Daten</p>
-
-          <div class="grid grid-cols-2 gap-2">
-            <button id="exportBtn" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-extrabold text-slate-900 active:bg-slate-100">
-              Export
-            </button>
-
-            <label class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-extrabold text-slate-900 active:bg-slate-100 text-center cursor-pointer">
-              Import
-              <input id="importInput" type="file" accept="application/json" class="hidden" />
-            </label>
-
-            <button id="resetBtn" class="col-span-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-sm font-extrabold text-red-600 active:bg-red-100">
-              Alles löschen
-            </button>
-          </div>
-
-          <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-            Export = JSON Backup. Import überschreibt deine Daten.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
-    /***********************
-     * TaskHub (mobile safe)
-     ***********************/
+    // ---- SUPER ROBUST TASK APP ----
+    const KEY = "taskhub_simple_v1";
 
-    // ----- No structuredClone (Safari safe)
-    function deepClone(obj) {
-      return JSON.parse(JSON.stringify(obj));
+    function load() {
+      try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+      catch { return []; }
+    }
+    function save(tasks) {
+      localStorage.setItem(KEY, JSON.stringify(tasks));
     }
 
-    const STORAGE_KEY = "taskhub:v1";
+    let tasks = load();
 
-    const DEFAULT_STATE = {
-      projects: [
-        { id: "inbox", name: "Inbox", locked: true },
-        { id: "academy", name: "Academy", locked: false },
-        { id: "hse", name: "HSE", locked: false },
-        { id: "recruiting", name: "Recruiting", locked: false }
-      ],
-      tasks: [],
-      ui: {
-        filter: "active",
-        projectFilter: "all",
-        search: "",
-        sortMode: "smart",
-        dismissedDueBannerFor: ""
-      }
-    };
+    function $(id){ return document.getElementById(id); }
 
-    function loadState() {
-      try {
-        var raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return deepClone(DEFAULT_STATE);
-        var parsed = JSON.parse(raw);
-        return {
-          projects: Array.isArray(parsed.projects) ? parsed.projects : deepClone(DEFAULT_STATE.projects),
-          tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
-          ui: Object.assign({}, deepClone(DEFAULT_STATE.ui), (parsed.ui || {}))
-        };
-      } catch (e) {
-        return deepClone(DEFAULT_STATE);
-      }
+    function showMsg(text){
+      const el = $("msg");
+      el.textContent = text;
+      el.classList.remove("hidden");
+      setTimeout(() => el.classList.add("hidden"), 2000);
     }
 
-    function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-
-    var state = loadState();
-
-    function $(id) { return document.getElementById(id); }
-
-    function todayISO() {
-      return new Date().toISOString().slice(0, 10);
-    }
-
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, function(m) {
-        return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" })[m];
-      });
-    }
-
-    function prioLabel(p) {
-      if (p === 1) return "🔥 Hoch";
-      if (p === 2) return "⚡ Mittel";
-      return "🌱 Niedrig";
-    }
-
-    function getProjectName(id) {
-      for (var i=0;i<state.projects.length;i++) {
-        if (state.projects[i].id === id) return state.projects[i].name;
-      }
-      return "Unbekannt";
-    }
-
-    // ---- Bottom Sheet
-    function openSheet() {
-      $("sheetBackdrop").classList.remove("hidden");
-      $("sheet").style.transform = "translateY(0)";
-    }
-    function closeSheet() {
-      $("sheetBackdrop").classList.add("hidden");
-      $("sheet").style.transform = "translateY(100%)";
-    }
-
-    // ---- Projects
-    function addProject(name) {
-      var clean = (name || "").trim();
-      if (!clean) return;
-
-      var base = clean.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-      var id = base || ("p-" + Date.now());
-
-      while (state.projects.some(function(p){ return p.id === id; })) id = id + "-1";
-
-      state.projects.push({ id: id, name: clean, locked: false });
-      saveState();
-      renderAll();
-    }
-
-    function deleteProject(id) {
-      var p = state.projects.find(function(x){ return x.id === id; });
-      if (!p || p.locked) return;
-
-      // move tasks to inbox
-      state.tasks = state.tasks.map(function(t){
-        return (t.projectId === id) ? Object.assign({}, t, { projectId: "inbox" }) : t;
-      });
-
-      state.projects = state.projects.filter(function(x){ return x.id !== id; });
-
-      if (state.ui.projectFilter === id) state.ui.projectFilter = "all";
-
-      saveState();
-      renderAll();
-    }
-
-    // ---- Tasks
-    function addTask() {
-      var title = ($("taskTitle").value || "").trim();
-      var prio = parseInt($("taskPrio").value, 10);
-      var deadline = $("taskDeadline").value || "";
-      var notes = ($("taskNotes").value || "").trim();
-      var projectId = $("taskProject").value;
-
-      if (!title) return;
-
-      // ask permission on click
-      if ("Notification" in window && Notification.permission === "default") {
-        try { Notification.requestPermission(); } catch(e) {}
-      }
-
-      state.tasks.push({
-        id: String(Date.now()),
-        title: title,
-        notes: notes,
-        prio: (prio === 1 || prio === 2 || prio === 3) ? prio : 3,
-        deadline: deadline,
-        projectId: projectId,
-        completed: false,
-        createdAt: Date.now(),
-        completedAt: null
-      });
-
-      $("taskTitle").value = "";
-      $("taskDeadline").value = "";
-      $("taskNotes").value = "";
-
-      saveState();
-      renderAll();
-      maybeNotifyDueToday();
-    }
-
-    function toggleComplete(id) {
-      state.tasks = state.tasks.map(function(t){
-        if (t.id !== id) return t;
-        var next = !t.completed;
-        return Object.assign({}, t, { completed: next, completedAt: next ? Date.now() : null });
-      });
-      saveState();
-      renderAll();
-    }
-
-    function postponeTask(id) {
-      state.tasks = state.tasks.map(function(t){
-        if (t.id !== id) return t;
-        var d = t.deadline ? new Date(t.deadline) : new Date();
-        if (isNaN(d.getTime())) d = new Date();
-        d.setDate(d.getDate() + 1);
-        var iso = d.toISOString().slice(0,10);
-        return Object.assign({}, t, { deadline: iso });
-      });
-      saveState();
-      renderAll();
-    }
-
-    function deleteTask(id) {
-      state.tasks = state.tasks.filter(function(t){ return t.id !== id; });
-      saveState();
-      renderAll();
-    }
-
-    function editTask(id) {
-      var t = state.tasks.find(function(x){ return x.id === id; });
-      if (!t) return;
-
-      var newTitle = prompt("Aufgabe bearbeiten:", t.title);
-      if (newTitle === null) return;
-
-      var clean = String(newTitle).trim();
-      if (!clean) return;
-
-      state.tasks = state.tasks.map(function(x){
-        return (x.id === id) ? Object.assign({}, x, { title: clean }) : x;
-      });
-
-      saveState();
-      renderAll();
-    }
-
-    // ---- Filtering + sorting
-    function getVisibleTasks() {
-      var f = state.ui.filter;
-      var pf = state.ui.projectFilter;
-      var q = (state.ui.search || "").trim().toLowerCase();
-      var tasks = state.tasks.slice();
-
-      if (f === "active") tasks = tasks.filter(function(t){ return !t.completed; });
-      if (f === "completed") tasks = tasks.filter(function(t){ return t.completed; });
-      if (pf !== "all") tasks = tasks.filter(function(t){ return t.projectId === pf; });
-
-      if (q) {
-        tasks = tasks.filter(function(t){
-          var a = (t.title || "").toLowerCase();
-          var b = (t.notes || "").toLowerCase();
-          return a.indexOf(q) !== -1 || b.indexOf(q) !== -1;
-        });
-      }
-
-      var mode = state.ui.sortMode;
-      var today = todayISO();
-
-      function deadlineKey(t) {
-        return t.deadline ? t.deadline.replace(/-/g,"") : "99999999";
-      }
-
-      tasks.sort(function(a,b){
-        if (state.ui.filter === "all" && a.completed !== b.completed) return a.completed ? 1 : -1;
-
-        if (mode === "created") return b.createdAt - a.createdAt;
-        if (mode === "prio") return a.prio - b.prio;
-        if (mode === "deadline") {
-          var dl = deadlineKey(a).localeCompare(deadlineKey(b));
-          return dl !== 0 ? dl : (a.prio - b.prio);
-        }
-
-        // smart
-        var aToday = a.deadline && a.deadline === today;
-        var bToday = b.deadline && b.deadline === today;
-        if (aToday !== bToday) return aToday ? -1 : 1;
-
-        var aOver = a.deadline && a.deadline < today && !a.completed;
-        var bOver = b.deadline && b.deadline < today && !b.completed;
-        if (aOver !== bOver) return aOver ? -1 : 1;
-
-        var dls = deadlineKey(a).localeCompare(deadlineKey(b));
-        if (dls !== 0) return dls;
-
-        var pr = a.prio - b.prio;
-        if (pr !== 0) return pr;
-
-        return b.createdAt - a.createdAt;
-      });
-
-      return tasks;
-    }
-
-    // ---- Due banner + notify
-    function dueTodayTasks() {
-      var today = todayISO();
-      return state.tasks.filter(function(t){ return !t.completed && t.deadline === today; });
-    }
-
-    function showDueBanner() {
-      var today = todayISO();
-      var due = dueTodayTasks();
-      var dismissedFor = state.ui.dismissedDueBannerFor;
-
-      if (due.length === 0 || dismissedFor === today) {
-        $("dueBanner").classList.add("hidden");
-        return;
-      }
-
-      var titles = due.slice(0,3).map(function(t){ return t.title; }).join(", ");
-      $("dueBannerText").innerText = due.length + " Aufgabe(n) sind heute fällig: " + titles + (due.length > 3 ? " …" : "");
-      $("dueBanner").classList.remove("hidden");
-    }
-
-    function maybeNotifyDueToday() {
-      if (!("Notification" in window)) return;
-      if (Notification.permission !== "granted") return;
-
-      var due = dueTodayTasks();
-      if (due.length === 0) return;
-
-      var key = "taskhub:lastNotify:" + todayISO();
-      if (localStorage.getItem(key) === "1") return;
-
-      try {
-        new Notification("My TaskHub – Heute fällig", { body: "Du hast " + due.length + " Aufgabe(n), die heute fällig sind." });
-        localStorage.setItem(key, "1");
-      } catch(e) {}
-    }
-
-    // ---- Render
-    function renderProjectsIntoSelects() {
-      $("taskProject").innerHTML = state.projects.map(function(p){
-        return '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>';
-      }).join("");
-
-      $("projectFilter").innerHTML = '<option value="all">Alle Projekte</option>' + state.projects.map(function(p){
-        return '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>';
-      }).join("");
-
-      $("projectFilter").value = state.ui.projectFilter;
-      $("taskProject").value = "inbox";
-    }
-
-    function renderProjectListInMenu() {
-      var wrap = $("projectList");
-      wrap.innerHTML = "";
-
-      state.projects.forEach(function(p){
-        var row = document.createElement("div");
-        row.className = "flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2";
-        row.innerHTML =
-          '<div class="min-w-0">' +
-            '<p class="text-sm font-extrabold text-slate-900 truncate">' + escapeHtml(p.name) + '</p>' +
-            '<p class="text-[11px] font-semibold text-slate-400">ID: ' + escapeHtml(p.id) + '</p>' +
-          '</div>' +
-          '<div class="flex items-center gap-2">' +
-            (p.locked
-              ? '<span class="text-[10px] font-black uppercase text-slate-400">Fix</span>'
-              : '<button class="deleteProjectBtn text-[10px] font-black uppercase text-red-500 active:scale-95" data-id="' + escapeHtml(p.id) + '">Löschen</button>'
-            ) +
-          '</div>';
-
-        wrap.appendChild(row);
-      });
-
-      var btns = document.querySelectorAll(".deleteProjectBtn");
-      for (var i=0;i<btns.length;i++) {
-        btns[i].addEventListener("click", function(e){
-          deleteProject(e.currentTarget.dataset.id);
-        });
-      }
-    }
-
-    function renderFilterButtons() {
-      var btns = document.querySelectorAll(".filterBtn");
-      for (var i=0;i<btns.length;i++) {
-        var btn = btns[i];
-        var active = (btn.dataset.filter === state.ui.filter);
-        btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase " +
-          (active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600");
-      }
-    }
-
-    function renderStats() {
-      var total = state.tasks.length;
-      var open = state.tasks.filter(function(t){ return !t.completed; }).length;
-      var done = total - open;
-      var today = dueTodayTasks().length;
-
-      var line = open + " offen · " + done + " erledigt";
-      if (today > 0) line += " · " + today + " heute fällig";
-      $("stats").innerText = line;
-    }
-
-    function renderTasks() {
-      var list = $("taskList");
+    function render(){
+      const list = $("list");
       list.innerHTML = "";
 
-      var tasks = getVisibleTasks();
-      var today = todayISO();
+      const open = tasks.filter(t => !t.done).length;
+      $("stats").textContent = `${open} offen · ${tasks.length - open} erledigt`;
 
-      if (tasks.length === 0) {
-        list.innerHTML =
-          '<div class="glass rounded-3xl p-6 border border-slate-200 text-center">' +
-            '<p class="text-sm font-extrabold text-slate-900">Keine Aufgaben</p>' +
-            '<p class="text-xs font-semibold text-slate-500 mt-2">Füge oben eine neue Aufgabe hinzu oder ändere deine Filter.</p>' +
-          '</div>';
+      if(tasks.length === 0){
+        list.innerHTML = `
+          <div class="glass rounded-3xl p-6 border border-slate-200 text-center">
+            <p class="text-sm font-extrabold text-slate-900">Keine Aufgaben</p>
+            <p class="text-xs font-semibold text-slate-500 mt-2">Füge oben eine neue Aufgabe hinzu.</p>
+          </div>
+        `;
         return;
       }
 
-      tasks.forEach(function(t){
-        var due = t.deadline ? t.deadline : "Kein Datum";
-        var isToday = t.deadline && t.deadline === today;
-        var isOverdue = t.deadline && t.deadline < today && !t.completed;
+      // sort: open first, then prio
+      tasks.sort((a,b) => (a.done - b.done) || (a.prio - b.prio));
 
-        var card = document.createElement("div");
-        card.className =
-          "task-card glass priority-" + t.prio + " p-4 rounded-2xl shadow-sm flex items-center gap-4 " +
-          (t.completed ? "opacity-40" : "") +
-          (isOverdue ? " ring-2 ring-red-200" : "") +
-          (isToday ? " ring-2 ring-amber-200" : "");
+      tasks.forEach(t => {
+        const card = document.createElement("div");
+        card.className = `glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ${t.done ? "opacity-40" : ""}`;
 
-        card.innerHTML =
-          '<button class="toggleBtn h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center" data-id="' + escapeHtml(t.id) + '">' +
-            (t.completed ? '<div class="h-4 w-4 bg-indigo-500 rounded-full"></div>' : '') +
-          '</button>' +
-          '<div class="flex-grow min-w-0">' +
-            '<div class="flex items-start justify-between gap-2">' +
-              '<h3 class="font-extrabold text-slate-800 ' + (t.completed ? "line-through" : "") + ' truncate">' + escapeHtml(t.title) + '</h3>' +
-              '<span class="text-[10px] font-black uppercase text-slate-400 flex-shrink-0">' + escapeHtml(getProjectName(t.projectId)) + '</span>' +
-            '</div>' +
-            '<div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">' +
-              '<span class="text-[10px] font-black uppercase text-slate-400">📅 ' + escapeHtml(due) + (isToday ? " · HEUTE" : "") + (isOverdue ? " · ÜBERFÄLLIG" : "") + '</span>' +
-              '<span class="text-[10px] font-black uppercase text-slate-400">' + escapeHtml(prioLabel(t.prio)) + '</span>' +
-              (t.notes ? '<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ' + escapeHtml(t.notes) + '</span>' : "") +
-            '</div>' +
-            '<div class="flex gap-3 mt-2">' +
-              '<button class="editBtn text-[10px] font-black uppercase text-slate-600 active:scale-95" data-id="' + escapeHtml(t.id) + '">Bearbeiten</button>' +
-              '<button class="postponeBtn text-[10px] font-black uppercase text-indigo-600 active:scale-95" data-id="' + escapeHtml(t.id) + '">+1 Tag</button>' +
-              '<button class="deleteBtn text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="' + escapeHtml(t.id) + '">Löschen</button>' +
-            '</div>' +
-          '</div>';
+        card.innerHTML = `
+          <button class="toggle h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center" data-id="${t.id}">
+            ${t.done ? '<div class="h-4 w-4 bg-indigo-500 rounded-full"></div>' : ''}
+          </button>
+
+          <div class="flex-grow min-w-0">
+            <div class="flex items-start justify-between gap-2">
+              <h3 class="font-extrabold text-slate-800 ${t.done ? "line-through" : ""} truncate">${escapeHtml(t.title)}</h3>
+              <span class="text-[10px] font-black uppercase text-slate-400 flex-shrink-0">${escapeHtml(t.project)}</span>
+            </div>
+
+            <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">
+              <span class="text-[10px] font-black uppercase text-slate-400">📅 ${t.deadline || "Kein Datum"}</span>
+              ${t.notes ? `<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
+            </div>
+
+            <div class="flex gap-3 mt-2">
+              <button class="del text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="${t.id}">Löschen</button>
+            </div>
+          </div>
+        `;
 
         list.appendChild(card);
       });
 
-      var tbtns = document.querySelectorAll(".toggleBtn");
-      for (var i=0;i<tbtns.length;i++) tbtns[i].addEventListener("click", function(e){ toggleComplete(e.currentTarget.dataset.id); });
+      // bind events (always after render)
+      document.querySelectorAll(".toggle").forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          tasks = tasks.map(t => t.id === id ? ({...t, done: !t.done}) : t);
+          save(tasks);
+          render();
+        };
+      });
 
-      var pbtns = document.querySelectorAll(".postponeBtn");
-      for (var j=0;j<pbtns.length;j++) pbtns[j].addEventListener("click", function(e){ postponeTask(e.currentTarget.dataset.id); });
-
-      var dbtns = document.querySelectorAll(".deleteBtn");
-      for (var k=0;k<dbtns.length;k++) dbtns[k].addEventListener("click", function(e){ deleteTask(e.currentTarget.dataset.id); });
-
-      var ebtns = document.querySelectorAll(".editBtn");
-      for (var m=0;m<ebtns.length;m++) ebtns[m].addEventListener("click", function(e){ editTask(e.currentTarget.dataset.id); });
+      document.querySelectorAll(".del").forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          tasks = tasks.filter(t => t.id !== id);
+          save(tasks);
+          render();
+        };
+      });
     }
 
-    function renderAll() {
-      renderProjectsIntoSelects();
-      renderProjectListInMenu();
-      renderFilterButtons();
-
-      $("projectFilter").value = state.ui.projectFilter;
-      $("searchInput").value = state.ui.search;
-      $("sortMode").value = state.ui.sortMode;
-
-      renderStats();
-      renderTasks();
-      showDueBanner();
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+      }[m]));
     }
 
-    // ---- Export/Import/Reset
-    function exportData() {
-      var data = JSON.stringify(state, null, 2);
-      var blob = new Blob([data], { type: "application/json" });
-      var url = URL.createObjectURL(blob);
+    function addTask(){
+      const title = $("title").value.trim();
+      if(!title){
+        showMsg("Bitte zuerst einen Titel eingeben 🙂");
+        $("title").focus();
+        return;
+      }
 
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "taskhub-backup-" + todayISO() + ".json";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      URL.revokeObjectURL(url);
-    }
-
-    function importData(file) {
-      var reader = new FileReader();
-      reader.onload = function() {
-        try {
-          var parsed = JSON.parse(reader.result);
-          if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
-          if (!Array.isArray(parsed.projects) || !Array.isArray(parsed.tasks)) throw new Error("Missing fields");
-
-          state = {
-            projects: parsed.projects,
-            tasks: parsed.tasks,
-            ui: Object.assign({}, deepClone(DEFAULT_STATE.ui), (parsed.ui || {}))
-          };
-
-          saveState();
-          renderAll();
-          alert("Import erfolgreich ✅");
-        } catch (e) {
-          alert("Import fehlgeschlagen: " + e.message);
-        }
+      const task = {
+        id: String(Date.now()),
+        title,
+        project: $("project").value,
+        prio: parseInt($("prio").value, 10) || 3,
+        deadline: $("deadline").value || "",
+        notes: $("notes").value.trim(),
+        done: false
       };
-      reader.readAsText(file);
+
+      tasks.push(task);
+      save(tasks);
+
+      $("title").value = "";
+      $("deadline").value = "";
+      $("notes").value = "";
+
+      render();
     }
 
-    function resetAll() {
-      if (!confirm("Wirklich ALLES löschen?")) return;
-      state = deepClone(DEFAULT_STATE);
-      saveState();
-      renderAll();
-    }
-
-    // ---- Bind events (after DOM loaded)
-    window.addEventListener("load", function() {
-      $("addTaskBtn").addEventListener("click", addTask);
-      $("taskTitle").addEventListener("keydown", function(e){ if (e.key === "Enter") addTask(); });
-
-      var fbtns = document.querySelectorAll(".filterBtn");
-      for (var i=0;i<fbtns.length;i++) {
-        fbtns[i].addEventListener("click", function(e){
-          state.ui.filter = e.currentTarget.dataset.filter;
-          saveState();
-          renderAll();
-        });
-      }
-
-      $("projectFilter").addEventListener("change", function(){
-        state.ui.projectFilter = $("projectFilter").value;
-        saveState();
-        renderAll();
-      });
-
-      $("searchInput").addEventListener("input", function(){
-        state.ui.search = $("searchInput").value;
-        saveState();
-        renderAll();
-      });
-
-      $("sortMode").addEventListener("change", function(){
-        state.ui.sortMode = $("sortMode").value;
-        saveState();
-        renderAll();
-      });
-
-      $("requestNotifyBtn").addEventListener("click", function(){
-        if (!("Notification" in window)) return alert("Dein Browser unterstützt keine Benachrichtigungen.");
-        try {
-          Notification.requestPermission().then(function(res){
-            if (res === "granted") { alert("Erinnerungen aktiviert ✅"); maybeNotifyDueToday(); }
-            else alert("Erinnerungen nicht erlaubt.");
-          });
-        } catch(e) {
-          alert("Benachrichtigungen konnten nicht aktiviert werden.");
-        }
-      });
-
-      $("dismissDueBanner").addEventListener("click", function(){
-        state.ui.dismissedDueBannerFor = todayISO();
-        saveState();
-        showDueBanner();
-      });
-
-      // menu
-      $("openMenuBtn").addEventListener("click", openSheet);
-      $("closeMenuBtn").addEventListener("click", closeSheet);
-      $("sheetBackdrop").addEventListener("click", closeSheet);
-
-      $("addProjectBtn").addEventListener("click", function(){
-        addProject($("newProjectName").value);
-        $("newProjectName").value = "";
-      });
-      $("newProjectName").addEventListener("keydown", function(e){
-        if (e.key === "Enter") {
-          addProject($("newProjectName").value);
-          $("newProjectName").value = "";
-        }
-      });
-
-      $("exportBtn").addEventListener("click", exportData);
-
-      $("importInput").addEventListener("change", function(e){
-        var f = e.target.files && e.target.files[0];
-        if (f) importData(f);
-        e.target.value = "";
-      });
-
-      $("resetBtn").addEventListener("click", resetAll);
-
-      // periodic while open
-      setInterval(function(){
-        showDueBanner();
-        maybeNotifyDueToday();
-      }, 60000);
-
-      // SW
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js").catch(function(){});
-      }
-
-      renderAll();
-      showDueBanner();
-      maybeNotifyDueToday();
+    // bind once
+    $("addBtn").onclick = addTask;
+    $("title").addEventListener("keydown", (e) => {
+      if(e.key === "Enter") addTask();
     });
+
+    // start
+    render();
   </script>
 </body>
 </html>
