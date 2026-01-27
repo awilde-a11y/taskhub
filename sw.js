@@ -1,14 +1,14 @@
-const CACHE_NAME = "taskhub-cache-v1";
+const CACHE_NAME = "taskhub-cache-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./sw.js",
+  "./sw.js"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS).catch(() => {}))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -23,18 +23,14 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  const req = event.request;
-
-  // Only GET
-  if (req.method !== "GET") return;
+  if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(req).then((cached) => {
+    caches.match(event.request).then((cached) => {
       if (cached) return cached;
-      return fetch(req).then((res) => {
-        // Cache copy
+      return fetch(event.request).then((res) => {
         const copy = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, copy)).catch(() => {});
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)).catch(() => {});
         return res;
       }).catch(() => caches.match("./index.html"));
     })
