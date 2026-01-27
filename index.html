@@ -15,12 +15,41 @@
     .priority-2 { border-left: 6px solid #f59e0b; }
     .priority-3 { border-left: 6px solid #10b981; }
 
-    .glass { background: rgba(255,255,255,.95); backdrop-filter: blur(12px); border: 1px solid rgba(0,0,0,.06); }
+    .glass { background: rgba(255,255,255,.96); backdrop-filter: blur(12px); border: 1px solid rgba(15,23,42,.08); }
     .task-card { transition: transform .15s ease; }
     .task-card:active { transform: scale(.99); }
 
+    /* Toast */
     #toast { transform: translateY(14px); opacity: 0; pointer-events: none; }
     #toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+    /* ✅ iOS: Eingabetext sichtbar erzwingen */
+    input, select {
+      color: #0f172a !important;
+      -webkit-text-fill-color: #0f172a !important;
+    }
+
+    /* ✅ iOS: datetime-local sichtbar + getrennt */
+    input[type="datetime-local"]{
+      background: #f1f5f9 !important;
+      border: 1px solid rgba(15,23,42,.10) !important;
+      border-radius: 14px !important;
+      padding: 10px 12px !important;
+      width: 100% !important;
+      font-weight: 700 !important;
+      font-size: 14px !important;
+      box-shadow: 0 1px 0 rgba(15,23,42,.04) inset;
+    }
+    input[type="datetime-local"]::-webkit-datetime-edit {
+      color: #0f172a !important;
+      opacity: 1 !important;
+    }
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator{
+      opacity: .85;
+    }
+
+    /* Modal */
+    #alarmModal.hidden { display:none; }
   </style>
 </head>
 
@@ -40,44 +69,63 @@
 
   <!-- Toast -->
   <div class="fixed left-0 right-0 bottom-6 z-50 px-5">
-    <div id="toast" class="max-w-md mx-auto glass rounded-2xl px-4 py-3 shadow-lg border border-slate-200 transition-all duration-200">
+    <div id="toast" class="max-w-md mx-auto glass rounded-2xl px-4 py-3 shadow-lg transition-all duration-200">
       <p id="toastText" class="text-sm font-extrabold text-slate-900"></p>
       <p id="toastSub" class="text-xs font-semibold text-slate-500 mt-1"></p>
+    </div>
+  </div>
+
+  <!-- ✅ In-App Alarm Modal (funktioniert auch ohne Notifications) -->
+  <div id="alarmModal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute left-0 right-0 top-24 px-5">
+      <div class="max-w-md mx-auto glass rounded-3xl p-5 shadow-xl">
+        <p class="text-sm font-black uppercase text-slate-400">Erinnerung</p>
+        <p id="alarmTitle" class="text-xl font-extrabold text-slate-900 mt-1"></p>
+        <p id="alarmSub" class="text-sm font-bold text-slate-600 mt-2"></p>
+
+        <div class="grid grid-cols-2 gap-3 mt-5">
+          <button id="alarmDoneBtn" class="bg-indigo-600 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Erledigt</button>
+          <button id="alarmCloseBtn" class="bg-slate-900 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Schließen</button>
+        </div>
+
+        <p class="text-[11px] font-semibold text-slate-400 mt-3">
+          Hinweis: iPhone-Web-Notifications sind nicht immer zuverlässig. Dieses Popup ist der sichere Fallback.
+        </p>
+      </div>
     </div>
   </div>
 
   <main class="max-w-md mx-auto px-5">
 
     <!-- ADD TASK -->
-    <section class="glass rounded-3xl p-5 shadow-sm border border-slate-200 mb-6">
+    <section class="glass rounded-3xl p-5 shadow-sm mb-6">
       <input id="taskTitle" type="text" placeholder="Neue Aufgabe tippen..."
         class="w-full text-lg font-semibold bg-transparent border-none focus:ring-0 outline-none mb-4 text-slate-800">
 
-      <div class="grid grid-cols-2 gap-3 mb-3">
-        <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
+          <option value="Inbox" selected>Inbox</option>
           <option value="Academy">Academy</option>
           <option value="HSE">HSE</option>
           <option value="Recruiting">Recruiting</option>
-          <option value="Inbox" selected>Inbox</option>
         </select>
 
-        <select id="taskPrio" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
+        <select id="taskPrio" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
           <option value="1">🔥 Hoch</option>
           <option value="2" selected>⚡ Mittel</option>
           <option value="3">🌱 Niedrig</option>
         </select>
       </div>
 
-      <!-- HIER ist die Änderung: Datum + Uhrzeit + Notiz -->
-      <div class="grid grid-cols-2 gap-3 mb-3">
-        <input id="taskDeadline" type="date"
-          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
-        <input id="taskTime" type="time"
-          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
+      <!-- ✅ EIN Feld: Datum + Uhrzeit -->
+      <div class="mb-3">
+        <label class="text-[11px] font-black uppercase text-slate-400">Datum & Uhrzeit</label>
+        <input id="taskWhen" type="datetime-local" class="mt-1" />
       </div>
 
       <input id="taskNotes" type="text" placeholder="Notiz (optional)"
-        class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none mb-4">
+        class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200 mb-4">
 
       <button id="addTaskBtn"
         class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
@@ -85,12 +133,12 @@
       </button>
 
       <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Tipp: Setze Datum + Uhrzeit, dann kann eine Erinnerung genau zu diesem Zeitpunkt ausgelöst werden.
+        Tipp: Wenn du Datum & Uhrzeit setzt, kann eine Erinnerung zu genau diesem Zeitpunkt ausgelöst werden (solange die App offen ist).
       </p>
     </section>
 
     <!-- FILTERS -->
-    <section class="glass rounded-3xl p-4 shadow-sm border border-slate-200 mb-6">
+    <section class="glass rounded-3xl p-4 shadow-sm mb-6">
       <div class="flex items-center gap-2 mb-3">
         <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="active">Offen</button>
         <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="all">Alle</button>
@@ -98,22 +146,22 @@
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
+        <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
           <option value="all">Alle Projekte</option>
+          <option value="Inbox">Inbox</option>
           <option value="Academy">Academy</option>
           <option value="HSE">HSE</option>
           <option value="Recruiting">Recruiting</option>
-          <option value="Inbox">Inbox</option>
         </select>
 
         <input id="searchInput" type="search" placeholder="Suchen..."
-          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none">
+          class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
       </div>
 
       <div class="grid grid-cols-2 gap-3 mt-3">
-        <select id="sortMode" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
+        <select id="sortMode" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
           <option value="smart" selected>Sort: Smart</option>
-          <option value="deadline">Sort: Datum</option>
+          <option value="when">Sort: Datum/Uhrzeit</option>
           <option value="prio">Sort: Priorität</option>
           <option value="created">Sort: Neu → Alt</option>
         </select>
@@ -125,7 +173,7 @@
       </div>
 
       <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Ohne Server funktionieren Erinnerungen zuverlässig, solange die Seite/App offen ist. (Hintergrund-Push im komplett geschlossenen Zustand ist im Web eingeschränkt.)
+        iPhone: Notifications sind im Web nicht immer zuverlässig. Du bekommst deshalb zusätzlich ein In-App Alarm-Popup.
       </p>
     </section>
 
@@ -133,93 +181,95 @@
   </main>
 
   <script>
-    // ---------- Storage ----------
-    const KEY = "taskhub_with_time_v1";
+    const KEY = "taskhub_when_v1";
+    const $ = (id) => document.getElementById(id);
 
-    function load() {
-      try { return JSON.parse(localStorage.getItem(KEY)) || []; }
-      catch { return []; }
-    }
-    function save(tasks) { localStorage.setItem(KEY, JSON.stringify(tasks)); }
+    function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
+    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
 
     let tasks = load();
 
-    const $ = (id) => document.getElementById(id);
-
-    // ---------- Toast ----------
-    let toastTimer = null;
-    function toast(title, sub="") {
+    // Toast
+    let toastTimer=null;
+    function toast(title, sub=""){
       $("toastText").textContent = title;
       $("toastSub").textContent = sub;
       $("toast").classList.add("show");
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => $("toast").classList.remove("show"), 2500);
+      if(toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=> $("toast").classList.remove("show"), 2600);
     }
 
-    function escapeHtml(str) {
+    function escapeHtml(str){
       return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
 
-    function todayISO() { return new Date().toISOString().slice(0,10); }
-
-    function renderStats() {
-      const open = tasks.filter(t => !t.done).length;
-      $("stats").textContent = `${open} offen · ${tasks.length - open} erledigt`;
+    // Helpers for datetime-local
+    function nowPlusMinutes(min){
+      const d = new Date(Date.now() + min*60000);
+      const pad = (n) => String(n).padStart(2,"0");
+      const yyyy = d.getFullYear();
+      const mm = pad(d.getMonth()+1);
+      const dd = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const mi = pad(d.getMinutes());
+      return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
     }
 
-    function getVisibleTasks() {
-      const filter = document.querySelector(".filterBtn.bg-slate-900")?.dataset.filter || "active";
+    function parseWhen(value){
+      if(!value) return null;
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatWhen(d){
+      const pad = (n)=>String(n).padStart(2,"0");
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // Filters
+    function activeFilter(){ return document.querySelector(".filterBtn.bg-slate-900")?.dataset.filter || "active"; }
+
+    function renderStats(){
+      const open = tasks.filter(t=>!t.done).length;
+      $("stats").textContent = `${open} offen · ${tasks.length-open} erledigt`;
+    }
+
+    function getVisibleTasks(){
+      const filter = activeFilter();
       const proj = $("projectFilter").value;
-      const q = ($("searchInput").value || "").trim().toLowerCase();
+      const q = ($("searchInput").value||"").trim().toLowerCase();
       const sortMode = $("sortMode").value;
 
       let list = tasks.slice();
+      if(filter==="active") list = list.filter(t=>!t.done);
+      if(filter==="completed") list = list.filter(t=>t.done);
+      if(proj!=="all") list = list.filter(t=>t.project===proj);
+      if(q) list = list.filter(t => (t.title||"").toLowerCase().includes(q) || (t.notes||"").toLowerCase().includes(q));
 
-      if (filter === "active") list = list.filter(t => !t.done);
-      if (filter === "completed") list = list.filter(t => t.done);
-
-      if (proj !== "all") list = list.filter(t => t.project === proj);
-
-      if (q) list = list.filter(t =>
-        (t.title||"").toLowerCase().includes(q) || (t.notes||"").toLowerCase().includes(q)
-      );
-
-      const deadlineKey = (t) => t.date ? t.date.replace(/-/g,"") : "99999999";
-      const timeKey = (t) => t.time ? t.time.replace(":","") : "9999";
-
-      list.sort((a,b) => {
-        // open first
-        if (filter === "all" && a.done !== b.done) return a.done ? 1 : -1;
-
-        if (sortMode === "created") return b.createdAt - a.createdAt;
-        if (sortMode === "prio") return a.prio - b.prio;
-        if (sortMode === "deadline") {
-          const d = deadlineKey(a).localeCompare(deadlineKey(b));
-          if (d !== 0) return d;
-          return timeKey(a).localeCompare(timeKey(b)) || (a.prio - b.prio);
-        }
-
-        // smart
-        const d = deadlineKey(a).localeCompare(deadlineKey(b));
-        if (d !== 0) return d;
-        const t = timeKey(a).localeCompare(timeKey(b));
-        if (t !== 0) return t;
-        const p = a.prio - b.prio;
-        if (p !== 0) return p;
-        return b.createdAt - a.createdAt;
+      list.sort((a,b)=>{
+        if(filter==="all" && a.done!==b.done) return a.done?1:-1;
+        if(sortMode==="created") return b.createdAt-a.createdAt;
+        if(sortMode==="prio") return a.prio-b.prio;
+        // smart/when: earliest first
+        const aw = a.when ? a.when : 9e15;
+        const bw = b.when ? b.when : 9e15;
+        if(aw!==bw) return aw-bw;
+        const p = a.prio-b.prio;
+        if(p!==0) return p;
+        return b.createdAt-a.createdAt;
       });
 
       return list;
     }
 
-    function renderList() {
-      const list = $("taskList");
-      list.innerHTML = "";
+    function renderList(){
+      const wrap = $("taskList");
+      wrap.innerHTML = "";
       const visible = getVisibleTasks();
 
-      if (visible.length === 0) {
-        list.innerHTML = `
-          <div class="glass rounded-3xl p-6 border border-slate-200 text-center">
+      if(visible.length===0){
+        wrap.innerHTML = `
+          <div class="glass rounded-3xl p-6 text-center">
             <p class="text-sm font-extrabold text-slate-900">Keine Aufgaben</p>
             <p class="text-xs font-semibold text-slate-500 mt-2">Füge oben eine neue Aufgabe hinzu oder ändere deine Filter.</p>
           </div>
@@ -227,9 +277,11 @@
         return;
       }
 
-      visible.forEach(t => {
+      visible.forEach(t=>{
         const card = document.createElement("div");
         card.className = `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ${t.done ? "opacity-40" : ""}`;
+
+        const whenText = t.when ? formatWhen(new Date(t.when)) : "Kein Termin";
 
         card.innerHTML = `
           <button class="toggle h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center" data-id="${t.id}">
@@ -243,8 +295,7 @@
             </div>
 
             <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">
-              <span class="text-[10px] font-black uppercase text-slate-400">📅 ${t.date || "Kein Datum"}</span>
-              ${t.time ? `<span class="text-[10px] font-black uppercase text-slate-400">⏰ ${t.time}</span>` : ""}
+              <span class="text-[10px] font-black uppercase text-slate-400">📅 ${escapeHtml(whenText)}</span>
               ${t.notes ? `<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
             </div>
 
@@ -253,24 +304,23 @@
             </div>
           </div>
         `;
-
-        list.appendChild(card);
+        wrap.appendChild(card);
       });
 
-      document.querySelectorAll(".toggle").forEach(btn => {
-        btn.onclick = () => {
+      document.querySelectorAll(".toggle").forEach(btn=>{
+        btn.onclick = ()=>{
           const id = btn.dataset.id;
-          tasks = tasks.map(t => t.id === id ? ({...t, done: !t.done}) : t);
+          tasks = tasks.map(t=> t.id===id ? ({...t, done: !t.done}) : t);
           save(tasks);
           renderAll();
           scheduleNextReminder();
         };
       });
 
-      document.querySelectorAll(".del").forEach(btn => {
-        btn.onclick = () => {
+      document.querySelectorAll(".del").forEach(btn=>{
+        btn.onclick = ()=>{
           const id = btn.dataset.id;
-          tasks = tasks.filter(t => t.id !== id);
+          tasks = tasks.filter(t=>t.id!==id);
           save(tasks);
           renderAll();
           scheduleNextReminder();
@@ -278,144 +328,143 @@
       });
     }
 
-    function renderAll() {
+    function renderAll(){
       renderStats();
       renderList();
     }
 
-    // ---------- Reminder engine ----------
+    // ----- Reminder (Notification + In-App modal)
     let remindersEnabled = false;
     let reminderTimeout = null;
+    let currentAlarmTaskId = null;
 
-    function taskReminderDate(t) {
-      if (!t.date || !t.time) return null;
-      const d = new Date(`${t.date}T${t.time}:00`);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    function nextReminderTask() {
+    function nextReminder(){
       const now = Date.now();
       const candidates = tasks
-        .filter(t => !t.done)
-        .map(t => ({ t, d: taskReminderDate(t) }))
-        .filter(x => x.d && x.d.getTime() >= now)
-        .sort((a,b) => a.d.getTime() - b.d.getTime());
-
-      return candidates.length ? candidates[0] : null;
+        .filter(t=>!t.done && t.when && t.when >= now)
+        .sort((a,b)=> a.when - b.when);
+      return candidates[0] || null;
     }
 
-    function scheduleNextReminder() {
-      if (reminderTimeout) {
-        clearTimeout(reminderTimeout);
-        reminderTimeout = null;
-      }
-      if (!remindersEnabled) return;
+    function scheduleNextReminder(){
+      if(reminderTimeout){ clearTimeout(reminderTimeout); reminderTimeout=null; }
+      if(!remindersEnabled) return;
 
-      const nxt = nextReminderTask();
-      if (!nxt) {
-        toast("Erinnerungen aktiv", "Keine Aufgabe mit Datum + Uhrzeit gefunden.");
+      const nxt = nextReminder();
+      if(!nxt){
+        toast("Erinnerungen aktiv", "Keine zukünftige Aufgabe mit Datum/Uhrzeit gefunden.");
         return;
       }
 
-      const delay = Math.max(0, nxt.d.getTime() - Date.now());
-
-      reminderTimeout = setTimeout(() => {
-        fireReminder(nxt.t);
-      }, delay);
-
-      toast("Erinnerungen aktiv", `Nächste: ${nxt.t.title} um ${nxt.t.time}`);
+      const delay = Math.max(0, nxt.when - Date.now());
+      reminderTimeout = setTimeout(()=> fireAlarm(nxt), delay);
+      toast("Erinnerungen aktiv", `Nächste: ${nxt.title} um ${formatWhen(new Date(nxt.when))}`);
     }
 
-    function fireReminder(task) {
-      const title = "TaskHub – Erinnerung";
-      const body = `${task.title} (${task.project})`;
-
+    function fireAlarm(task){
+      // Notification (wenn möglich)
       let notified = false;
-      if ("Notification" in window && Notification.permission === "granted") {
-        try { new Notification(title, { body }); notified = true; } catch {}
+      if("Notification" in window && Notification.permission === "granted"){
+        try { new Notification("TaskHub – Erinnerung", { body: task.title }); notified = true; } catch {}
       }
+      if(notified) toast("Erinnerung gesendet", task.title);
 
-      if (!notified) toast("Erinnerung", body);
-      else toast("Erinnerung gesendet", body);
+      // Always show in-app alarm (safe)
+      currentAlarmTaskId = task.id;
+      $("alarmTitle").textContent = task.title;
+      $("alarmSub").textContent = `${task.project} · ${formatWhen(new Date(task.when))}`;
+      $("alarmModal").classList.remove("hidden");
 
-      scheduleNextReminder();
+      // Plan next after user closes/done (prevents overlapping)
     }
 
-    async function toggleReminders() {
-      if (!remindersEnabled) {
+    async function toggleReminders(){
+      if(!remindersEnabled){
         remindersEnabled = true;
 
-        if ("Notification" in window && Notification.permission === "default") {
+        if("Notification" in window && Notification.permission === "default"){
           try { await Notification.requestPermission(); } catch {}
         }
 
-        if ("Notification" in window && Notification.permission === "denied") {
-          toast("Hinweis", "Notifications sind blockiert – ich nutze In-App Hinweise.");
+        if(!("Notification" in window) || Notification.permission !== "granted"){
+          toast("Erinnerungen aktiv", "Notifications evtl. nicht verfügbar. In-App Alarm funktioniert sicher.");
         } else {
-          toast("Erinnerungen aktiv", "Ich erinnere dich zur eingestellten Uhrzeit.");
+          toast("Erinnerungen aktiv", "Notifications erlaubt ✅ + In-App Alarm");
         }
 
         $("requestNotifyBtn").textContent = "Erinnerungen: aktiv";
         scheduleNextReminder();
       } else {
         remindersEnabled = false;
-        if (reminderTimeout) clearTimeout(reminderTimeout);
+        if(reminderTimeout) clearTimeout(reminderTimeout);
         reminderTimeout = null;
         $("requestNotifyBtn").textContent = "Erinnerungen aktivieren";
         toast("Erinnerungen aus");
       }
     }
 
-    // ---------- Add Task ----------
-    function addTask() {
-      const title = ($("taskTitle").value || "").trim();
-      const project = $("taskProject").value;
-      const prio = parseInt($("taskPrio").value, 10) || 3;
-      const date = $("taskDeadline").value || "";
-      const time = $("taskTime").value || "";
-      const notes = ($("taskNotes").value || "").trim();
+    // Alarm modal buttons
+    $("alarmCloseBtn").onclick = ()=>{
+      $("alarmModal").classList.add("hidden");
+      scheduleNextReminder();
+    };
+    $("alarmDoneBtn").onclick = ()=>{
+      if(currentAlarmTaskId){
+        tasks = tasks.map(t => t.id===currentAlarmTaskId ? ({...t, done:true}) : t);
+        save(tasks);
+        renderAll();
+      }
+      $("alarmModal").classList.add("hidden");
+      scheduleNextReminder();
+    };
 
-      if (!title) {
+    // Add task
+    function addTask(){
+      const title = ($("taskTitle").value||"").trim();
+      if(!title){
         toast("Titel fehlt", "Bitte oben einen Titel eingeben.");
         $("taskTitle").focus();
         return;
       }
 
-      tasks.push({
+      const whenVal = $("taskWhen").value || "";
+      const whenDate = parseWhen(whenVal);
+
+      const t = {
         id: String(Date.now()),
         title,
-        project,
-        prio,
-        date,
-        time,
-        notes,
+        project: $("taskProject").value,
+        prio: parseInt($("taskPrio").value,10) || 2,
+        when: whenDate ? whenDate.getTime() : null,
+        notes: ($("taskNotes").value||"").trim(),
         done: false,
         createdAt: Date.now()
-      });
+      };
 
-      $("taskTitle").value = "";
-      $("taskDeadline").value = "";
-      $("taskTime").value = "";
-      $("taskNotes").value = "";
-
+      tasks.push(t);
       save(tasks);
+
+      $("taskTitle").value="";
+      $("taskWhen").value="";
+      $("taskNotes").value="";
+
       renderAll();
       scheduleNextReminder();
-      toast("Aufgabe hinzugefügt");
+      toast("Aufgabe hinzugefügt", t.when ? `Reminder: ${formatWhen(new Date(t.when))}` : "Ohne Termin");
     }
 
-    // ---------- Bind UI ----------
-    window.addEventListener("load", () => {
-      // Default filter style
-      document.querySelectorAll(".filterBtn").forEach(btn => {
+    // Startup
+    window.addEventListener("load", ()=>{
+      // default filter style
+      document.querySelectorAll(".filterBtn").forEach(btn=>{
         btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600";
       });
       const first = document.querySelector('.filterBtn[data-filter="active"]');
-      if (first) first.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-900 text-white";
+      if(first) first.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-900 text-white";
 
-      document.querySelectorAll(".filterBtn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          document.querySelectorAll(".filterBtn").forEach(b => b.className =
+      document.querySelectorAll(".filterBtn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          document.querySelectorAll(".filterBtn").forEach(b=> b.className =
             "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600"
           );
           btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-900 text-white";
@@ -428,12 +477,15 @@
       $("sortMode").addEventListener("change", renderAll);
 
       $("addTaskBtn").addEventListener("click", addTask);
-      $("taskTitle").addEventListener("keydown", (e) => { if (e.key === "Enter") addTask(); });
+      $("taskTitle").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addTask(); });
 
       $("requestNotifyBtn").addEventListener("click", toggleReminders);
 
+      // set default datetime to now+10min to make it easy to test
+      $("taskWhen").value = nowPlusMinutes(10);
+
       renderAll();
-      toast("Bereit", "Datum + Uhrzeit = Reminder möglich");
+      toast("Update aktiv ✅", "Datum/Uhrzeit jetzt als ein Feld + iPhone Fix");
     });
   </script>
 </body>
