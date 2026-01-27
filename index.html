@@ -27,8 +27,6 @@
 
     .task-card { transition: transform 0.15s ease; }
     .task-card:active { transform: scale(0.99); }
-
-    /* nicer date input on mobile */
     input[type="date"] { -webkit-appearance: none; }
   </style>
 </head>
@@ -50,7 +48,7 @@
   </header>
 
   <main class="max-w-md mx-auto px-5">
-    <!-- INFO BANNER (FÄLLIG HEUTE) -->
+    <!-- INFO BANNER -->
     <div id="dueBanner" class="hidden glass rounded-3xl p-4 shadow-sm border border-slate-200 mb-4">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -67,9 +65,7 @@
         class="w-full text-lg font-semibold bg-transparent border-none focus:ring-0 outline-none mb-4 text-slate-800" />
 
       <div class="grid grid-cols-2 gap-3 mb-3">
-        <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
-          <!-- projects injected -->
-        </select>
+        <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none"></select>
 
         <select id="taskPrio" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
           <option value="1">🔥 Hoch</option>
@@ -92,18 +88,13 @@
     <!-- FILTERS -->
     <section class="glass rounded-3xl p-4 shadow-sm border border-slate-200 mb-6">
       <div class="flex items-center gap-2 mb-3">
-        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase"
-          data-filter="active">Offen</button>
-        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase"
-          data-filter="all">Alle</button>
-        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase"
-          data-filter="completed">Erledigt</button>
+        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="active">Offen</button>
+        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="all">Alle</button>
+        <button class="filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase" data-filter="completed">Erledigt</button>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none">
-          <!-- projects injected + "Alle Projekte" -->
-        </select>
+        <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 appearance-none outline-none"></select>
 
         <input id="searchInput" type="search" placeholder="Suchen..."
           class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 outline-none" />
@@ -124,7 +115,7 @@
       </div>
 
       <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Hinweis: Browser-Benachrichtigungen funktionieren je nach Handy/Browser unterschiedlich. “Heute fällig” siehst du immer in der App.
+        Hinweis: Benachrichtigungen funktionieren je nach Handy/Browser unterschiedlich. “Heute fällig” siehst du immer in der App.
       </p>
     </section>
 
@@ -134,8 +125,7 @@
 
   <!-- MENU (BOTTOM SHEET) -->
   <div id="sheetBackdrop" class="hidden fixed inset-0 bg-black/30 z-30"></div>
-  <div id="sheet"
-    class="fixed left-0 right-0 bottom-0 z-40 translate-y-full transition-transform duration-200">
+  <div id="sheet" class="fixed left-0 right-0 bottom-0 z-40 translate-y-full transition-transform duration-200">
     <div class="max-w-md mx-auto px-5 pb-6">
       <div class="glass rounded-3xl p-4 shadow-lg border border-slate-200">
         <div class="flex justify-between items-center mb-3">
@@ -179,7 +169,7 @@
           </div>
 
           <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-            Export = JSON Datei zum Backup. Import überschreibt deine aktuellen Daten.
+            Export = JSON Backup. Import überschreibt deine Daten.
           </p>
         </div>
       </div>
@@ -188,10 +178,14 @@
 
   <script>
     /***********************
-     * TaskHub (single-file app)
+     * TaskHub (mobile safe)
      ***********************/
 
-    // ---- Storage
+    // ----- No structuredClone (Safari safe)
+    function deepClone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
     const STORAGE_KEY = "taskhub:v1";
 
     const DEFAULT_STATE = {
@@ -199,31 +193,30 @@
         { id: "inbox", name: "Inbox", locked: true },
         { id: "academy", name: "Academy", locked: false },
         { id: "hse", name: "HSE", locked: false },
-        { id: "recruiting", name: "Recruiting", locked: false },
+        { id: "recruiting", name: "Recruiting", locked: false }
       ],
       tasks: [],
       ui: {
-        filter: "active",      // active | all | completed
-        projectFilter: "all",  // all or projectId
+        filter: "active",
+        projectFilter: "all",
         search: "",
-        sortMode: "smart",     // smart | deadline | prio | created
-        dismissedDueBannerFor: "", // yyyy-mm-dd
+        sortMode: "smart",
+        dismissedDueBannerFor: ""
       }
     };
 
     function loadState() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return structuredClone(DEFAULT_STATE);
-        const parsed = JSON.parse(raw);
-        // minimal merge
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return deepClone(DEFAULT_STATE);
+        var parsed = JSON.parse(raw);
         return {
-          ...structuredClone(DEFAULT_STATE),
-          ...parsed,
-          ui: { ...structuredClone(DEFAULT_STATE.ui), ...(parsed.ui || {}) }
+          projects: Array.isArray(parsed.projects) ? parsed.projects : deepClone(DEFAULT_STATE.projects),
+          tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+          ui: Object.assign({}, deepClone(DEFAULT_STATE.ui), (parsed.ui || {}))
         };
-      } catch {
-        return structuredClone(DEFAULT_STATE);
+      } catch (e) {
+        return deepClone(DEFAULT_STATE);
       }
     }
 
@@ -231,19 +224,18 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
-    let state = loadState();
+    var state = loadState();
 
-    // ---- Helpers
-    const $ = (id) => document.getElementById(id);
+    function $(id) { return document.getElementById(id); }
 
     function todayISO() {
       return new Date().toISOString().slice(0, 10);
     }
 
     function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, m => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
-      }[m]));
+      return String(str).replace(/[&<>"']/g, function(m) {
+        return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" })[m];
+      });
     }
 
     function prioLabel(p) {
@@ -253,27 +245,17 @@
     }
 
     function getProjectName(id) {
-      const p = state.projects.find(x => x.id === id);
-      return p ? p.name : "Unbekannt";
+      for (var i=0;i<state.projects.length;i++) {
+        if (state.projects[i].id === id) return state.projects[i].name;
+      }
+      return "Unbekannt";
     }
 
-    function normalizeSearch(s) {
-      return s.trim().toLowerCase();
-    }
-
-    function parseISODate(s) {
-      // returns Date or null
-      if (!s) return null;
-      const d = new Date(s);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    // ---- UI: Bottom Sheet
+    // ---- Bottom Sheet
     function openSheet() {
       $("sheetBackdrop").classList.remove("hidden");
       $("sheet").style.transform = "translateY(0)";
     }
-
     function closeSheet() {
       $("sheetBackdrop").classList.add("hidden");
       $("sheet").style.transform = "translateY(100%)";
@@ -281,28 +263,30 @@
 
     // ---- Projects
     function addProject(name) {
-      const clean = name.trim();
+      var clean = (name || "").trim();
       if (!clean) return;
 
-      // create safe id
-      const base = clean.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-      let id = base || ("p-" + Date.now());
-      while (state.projects.some(p => p.id === id)) id = id + "-1";
+      var base = clean.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      var id = base || ("p-" + Date.now());
 
-      state.projects.push({ id, name: clean, locked: false });
+      while (state.projects.some(function(p){ return p.id === id; })) id = id + "-1";
+
+      state.projects.push({ id: id, name: clean, locked: false });
       saveState();
       renderAll();
     }
 
     function deleteProject(id) {
-      const p = state.projects.find(x => x.id === id);
+      var p = state.projects.find(function(x){ return x.id === id; });
       if (!p || p.locked) return;
 
       // move tasks to inbox
-      state.tasks = state.tasks.map(t => t.projectId === id ? { ...t, projectId: "inbox" } : t);
-      state.projects = state.projects.filter(x => x.id !== id);
+      state.tasks = state.tasks.map(function(t){
+        return (t.projectId === id) ? Object.assign({}, t, { projectId: "inbox" }) : t;
+      });
 
-      // fix filters
+      state.projects = state.projects.filter(function(x){ return x.id !== id; });
+
       if (state.ui.projectFilter === id) state.ui.projectFilter = "all";
 
       saveState();
@@ -311,29 +295,29 @@
 
     // ---- Tasks
     function addTask() {
-      const title = $("taskTitle").value.trim();
-      const prio = parseInt($("taskPrio").value, 10);
-      const deadline = $("taskDeadline").value || "";
-      const notes = $("taskNotes").value.trim();
-      const projectId = $("taskProject").value;
+      var title = ($("taskTitle").value || "").trim();
+      var prio = parseInt($("taskPrio").value, 10);
+      var deadline = $("taskDeadline").value || "";
+      var notes = ($("taskNotes").value || "").trim();
+      var projectId = $("taskProject").value;
 
       if (!title) return;
 
-      // Ask notification permission on user interaction (better for mobile)
+      // ask permission on click
       if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission().catch(() => {});
+        try { Notification.requestPermission(); } catch(e) {}
       }
 
       state.tasks.push({
         id: String(Date.now()),
-        title,
-        notes,
-        prio: [1,2,3].includes(prio) ? prio : 3,
-        deadline, // "" or yyyy-mm-dd
-        projectId,
+        title: title,
+        notes: notes,
+        prio: (prio === 1 || prio === 2 || prio === 3) ? prio : 3,
+        deadline: deadline,
+        projectId: projectId,
         completed: false,
         createdAt: Date.now(),
-        completedAt: null,
+        completedAt: null
       });
 
       $("taskTitle").value = "";
@@ -346,107 +330,101 @@
     }
 
     function toggleComplete(id) {
-      state.tasks = state.tasks.map(t => {
+      state.tasks = state.tasks.map(function(t){
         if (t.id !== id) return t;
-        const next = !t.completed;
-        return { ...t, completed: next, completedAt: next ? Date.now() : null };
+        var next = !t.completed;
+        return Object.assign({}, t, { completed: next, completedAt: next ? Date.now() : null });
       });
       saveState();
       renderAll();
     }
 
     function postponeTask(id) {
-      state.tasks = state.tasks.map(t => {
+      state.tasks = state.tasks.map(function(t){
         if (t.id !== id) return t;
-
-        const start = t.deadline ? parseISODate(t.deadline) : new Date();
-        const d = start || new Date();
+        var d = t.deadline ? new Date(t.deadline) : new Date();
+        if (isNaN(d.getTime())) d = new Date();
         d.setDate(d.getDate() + 1);
-        const iso = d.toISOString().slice(0, 10);
-        return { ...t, deadline: iso };
+        var iso = d.toISOString().slice(0,10);
+        return Object.assign({}, t, { deadline: iso });
       });
       saveState();
       renderAll();
     }
 
     function deleteTask(id) {
-      state.tasks = state.tasks.filter(t => t.id !== id);
+      state.tasks = state.tasks.filter(function(t){ return t.id !== id; });
       saveState();
       renderAll();
     }
 
     function editTask(id) {
-      const t = state.tasks.find(x => x.id === id);
+      var t = state.tasks.find(function(x){ return x.id === id; });
       if (!t) return;
 
-      const newTitle = prompt("Aufgabe bearbeiten:", t.title);
+      var newTitle = prompt("Aufgabe bearbeiten:", t.title);
       if (newTitle === null) return;
 
-      const clean = newTitle.trim();
+      var clean = String(newTitle).trim();
       if (!clean) return;
 
-      state.tasks = state.tasks.map(x => x.id === id ? { ...x, title: clean } : x);
+      state.tasks = state.tasks.map(function(x){
+        return (x.id === id) ? Object.assign({}, x, { title: clean }) : x;
+      });
+
       saveState();
       renderAll();
     }
 
-    // ---- Filtering + Sorting
+    // ---- Filtering + sorting
     function getVisibleTasks() {
-      const f = state.ui.filter;
-      const pf = state.ui.projectFilter;
-      const q = normalizeSearch(state.ui.search);
+      var f = state.ui.filter;
+      var pf = state.ui.projectFilter;
+      var q = (state.ui.search || "").trim().toLowerCase();
+      var tasks = state.tasks.slice();
 
-      let tasks = [...state.tasks];
+      if (f === "active") tasks = tasks.filter(function(t){ return !t.completed; });
+      if (f === "completed") tasks = tasks.filter(function(t){ return t.completed; });
+      if (pf !== "all") tasks = tasks.filter(function(t){ return t.projectId === pf; });
 
-      // filter status
-      if (f === "active") tasks = tasks.filter(t => !t.completed);
-      if (f === "completed") tasks = tasks.filter(t => t.completed);
-
-      // filter project
-      if (pf !== "all") tasks = tasks.filter(t => t.projectId === pf);
-
-      // search
       if (q) {
-        tasks = tasks.filter(t =>
-          (t.title && t.title.toLowerCase().includes(q)) ||
-          (t.notes && t.notes.toLowerCase().includes(q))
-        );
+        tasks = tasks.filter(function(t){
+          var a = (t.title || "").toLowerCase();
+          var b = (t.notes || "").toLowerCase();
+          return a.indexOf(q) !== -1 || b.indexOf(q) !== -1;
+        });
       }
 
-      // sort
-      const mode = state.ui.sortMode;
-      const today = todayISO();
+      var mode = state.ui.sortMode;
+      var today = todayISO();
 
-      function deadlineRank(t) {
-        if (!t.deadline) return 99999999;
-        // past dates smaller
-        return t.deadline.replaceAll("-", "");
+      function deadlineKey(t) {
+        return t.deadline ? t.deadline.replace(/-/g,"") : "99999999";
       }
 
-      tasks.sort((a, b) => {
-        // Always: open tasks first if "all"
-        if (state.ui.filter === "all") {
-          if (a.completed !== b.completed) return a.completed ? 1 : -1;
-        }
+      tasks.sort(function(a,b){
+        if (state.ui.filter === "all" && a.completed !== b.completed) return a.completed ? 1 : -1;
 
         if (mode === "created") return b.createdAt - a.createdAt;
         if (mode === "prio") return a.prio - b.prio;
-        if (mode === "deadline") return deadlineRank(a).localeCompare(deadlineRank(b)) || a.prio - b.prio;
+        if (mode === "deadline") {
+          var dl = deadlineKey(a).localeCompare(deadlineKey(b));
+          return dl !== 0 ? dl : (a.prio - b.prio);
+        }
 
-        // smart:
-        // 1) due today, 2) overdue, 3) soonest deadline, 4) prio, 5) newest
-        const aToday = a.deadline === today;
-        const bToday = b.deadline === today;
+        // smart
+        var aToday = a.deadline && a.deadline === today;
+        var bToday = b.deadline && b.deadline === today;
         if (aToday !== bToday) return aToday ? -1 : 1;
 
-        const aOver = a.deadline && a.deadline < today;
-        const bOver = b.deadline && b.deadline < today;
+        var aOver = a.deadline && a.deadline < today && !a.completed;
+        var bOver = b.deadline && b.deadline < today && !b.completed;
         if (aOver !== bOver) return aOver ? -1 : 1;
 
-        const dl = deadlineRank(a).localeCompare(deadlineRank(b));
-        if (dl !== 0) return dl;
+        var dls = deadlineKey(a).localeCompare(deadlineKey(b));
+        if (dls !== 0) return dls;
 
-        const pr = a.prio - b.prio;
+        var pr = a.prio - b.prio;
         if (pr !== 0) return pr;
 
         return b.createdAt - a.createdAt;
@@ -455,183 +433,171 @@
       return tasks;
     }
 
-    // ---- Reminders (simple)
+    // ---- Due banner + notify
     function dueTodayTasks() {
-      const today = todayISO();
-      return state.tasks.filter(t => !t.completed && t.deadline === today);
+      var today = todayISO();
+      return state.tasks.filter(function(t){ return !t.completed && t.deadline === today; });
     }
 
     function showDueBanner() {
-      const today = todayISO();
-      const due = dueTodayTasks();
-      const dismissedFor = state.ui.dismissedDueBannerFor;
+      var today = todayISO();
+      var due = dueTodayTasks();
+      var dismissedFor = state.ui.dismissedDueBannerFor;
 
       if (due.length === 0 || dismissedFor === today) {
         $("dueBanner").classList.add("hidden");
         return;
       }
 
-      $("dueBannerText").innerText = `${due.length} Aufgabe(n) sind heute fällig: ` +
-        due.slice(0, 3).map(t => t.title).join(", ") + (due.length > 3 ? " …" : "");
+      var titles = due.slice(0,3).map(function(t){ return t.title; }).join(", ");
+      $("dueBannerText").innerText = due.length + " Aufgabe(n) sind heute fällig: " + titles + (due.length > 3 ? " …" : "");
       $("dueBanner").classList.remove("hidden");
     }
 
     function maybeNotifyDueToday() {
-      // only while app is open; mobile behavior varies
       if (!("Notification" in window)) return;
       if (Notification.permission !== "granted") return;
 
-      const due = dueTodayTasks();
+      var due = dueTodayTasks();
       if (due.length === 0) return;
 
-      // avoid spamming: only once per day
-      const key = "taskhub:lastNotify:" + todayISO();
+      var key = "taskhub:lastNotify:" + todayISO();
       if (localStorage.getItem(key) === "1") return;
 
       try {
-        new Notification("My TaskHub – Heute fällig", {
-          body: `Du hast ${due.length} Aufgabe(n) die heute fällig sind.`,
-        });
+        new Notification("My TaskHub – Heute fällig", { body: "Du hast " + due.length + " Aufgabe(n), die heute fällig sind." });
         localStorage.setItem(key, "1");
-      } catch {
-        // ignore
-      }
+      } catch(e) {}
     }
 
     // ---- Render
     function renderProjectsIntoSelects() {
-      // add task project select
-      const sel = $("taskProject");
-      sel.innerHTML = state.projects.map(p =>
-        `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`
-      ).join("");
+      $("taskProject").innerHTML = state.projects.map(function(p){
+        return '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>';
+      }).join("");
 
-      // project filter
-      const pf = $("projectFilter");
-      pf.innerHTML = `<option value="all">Alle Projekte</option>` + state.projects.map(p =>
-        `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`
-      ).join("");
+      $("projectFilter").innerHTML = '<option value="all">Alle Projekte</option>' + state.projects.map(function(p){
+        return '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>';
+      }).join("");
 
-      // keep selected values
       $("projectFilter").value = state.ui.projectFilter;
-      $("taskProject").value = state.projects.some(p => p.id === "inbox") ? "inbox" : state.projects[0]?.id;
+      $("taskProject").value = "inbox";
     }
 
     function renderProjectListInMenu() {
-      const wrap = $("projectList");
+      var wrap = $("projectList");
       wrap.innerHTML = "";
 
-      state.projects.forEach(p => {
-        const row = document.createElement("div");
+      state.projects.forEach(function(p){
+        var row = document.createElement("div");
         row.className = "flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2";
+        row.innerHTML =
+          '<div class="min-w-0">' +
+            '<p class="text-sm font-extrabold text-slate-900 truncate">' + escapeHtml(p.name) + '</p>' +
+            '<p class="text-[11px] font-semibold text-slate-400">ID: ' + escapeHtml(p.id) + '</p>' +
+          '</div>' +
+          '<div class="flex items-center gap-2">' +
+            (p.locked
+              ? '<span class="text-[10px] font-black uppercase text-slate-400">Fix</span>'
+              : '<button class="deleteProjectBtn text-[10px] font-black uppercase text-red-500 active:scale-95" data-id="' + escapeHtml(p.id) + '">Löschen</button>'
+            ) +
+          '</div>';
 
-        row.innerHTML = `
-          <div class="min-w-0">
-            <p class="text-sm font-extrabold text-slate-900 truncate">${escapeHtml(p.name)}</p>
-            <p class="text-[11px] font-semibold text-slate-400">ID: ${escapeHtml(p.id)}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            ${p.locked ? `<span class="text-[10px] font-black uppercase text-slate-400">Fix</span>` : `
-              <button class="deleteProjectBtn text-[10px] font-black uppercase text-red-500 active:scale-95" data-id="${escapeHtml(p.id)}">Löschen</button>
-            `}
-          </div>
-        `;
         wrap.appendChild(row);
       });
 
-      // bind delete buttons
-      document.querySelectorAll(".deleteProjectBtn").forEach(btn => {
-        btn.addEventListener("click", () => deleteProject(btn.dataset.id));
-      });
+      var btns = document.querySelectorAll(".deleteProjectBtn");
+      for (var i=0;i<btns.length;i++) {
+        btns[i].addEventListener("click", function(e){
+          deleteProject(e.currentTarget.dataset.id);
+        });
+      }
     }
 
     function renderFilterButtons() {
-      document.querySelectorAll(".filterBtn").forEach(btn => {
-        const active = btn.dataset.filter === state.ui.filter;
+      var btns = document.querySelectorAll(".filterBtn");
+      for (var i=0;i<btns.length;i++) {
+        var btn = btns[i];
+        var active = (btn.dataset.filter === state.ui.filter);
         btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase " +
           (active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600");
-      });
+      }
     }
 
     function renderStats() {
-      const total = state.tasks.length;
-      const open = state.tasks.filter(t => !t.completed).length;
-      const done = total - open;
-      const today = dueTodayTasks().length;
+      var total = state.tasks.length;
+      var open = state.tasks.filter(function(t){ return !t.completed; }).length;
+      var done = total - open;
+      var today = dueTodayTasks().length;
 
-      let line = `${open} offen · ${done} erledigt`;
-      if (today > 0) line += ` · ${today} heute fällig`;
+      var line = open + " offen · " + done + " erledigt";
+      if (today > 0) line += " · " + today + " heute fällig";
       $("stats").innerText = line;
     }
 
     function renderTasks() {
-      const list = $("taskList");
+      var list = $("taskList");
       list.innerHTML = "";
 
-      const tasks = getVisibleTasks();
+      var tasks = getVisibleTasks();
+      var today = todayISO();
 
       if (tasks.length === 0) {
-        list.innerHTML = `
-          <div class="glass rounded-3xl p-6 border border-slate-200 text-center">
-            <p class="text-sm font-extrabold text-slate-900">Keine Aufgaben</p>
-            <p class="text-xs font-semibold text-slate-500 mt-2">Füge oben eine neue Aufgabe hinzu oder ändere deine Filter.</p>
-          </div>
-        `;
+        list.innerHTML =
+          '<div class="glass rounded-3xl p-6 border border-slate-200 text-center">' +
+            '<p class="text-sm font-extrabold text-slate-900">Keine Aufgaben</p>' +
+            '<p class="text-xs font-semibold text-slate-500 mt-2">Füge oben eine neue Aufgabe hinzu oder ändere deine Filter.</p>' +
+          '</div>';
         return;
       }
 
-      const today = todayISO();
+      tasks.forEach(function(t){
+        var due = t.deadline ? t.deadline : "Kein Datum";
+        var isToday = t.deadline && t.deadline === today;
+        var isOverdue = t.deadline && t.deadline < today && !t.completed;
 
-      tasks.forEach(t => {
-        const due = t.deadline ? t.deadline : "Kein Datum";
-        const isToday = t.deadline && t.deadline === today;
-        const isOverdue = t.deadline && t.deadline < today && !t.completed;
-
-        const card = document.createElement("div");
+        var card = document.createElement("div");
         card.className =
-          `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ` +
+          "task-card glass priority-" + t.prio + " p-4 rounded-2xl shadow-sm flex items-center gap-4 " +
           (t.completed ? "opacity-40" : "") +
           (isOverdue ? " ring-2 ring-red-200" : "") +
           (isToday ? " ring-2 ring-amber-200" : "");
 
-        card.innerHTML = `
-          <button class="toggleBtn h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center"
-            aria-label="Erledigt umschalten" data-id="${escapeHtml(t.id)}">
-            ${t.completed ? '<div class="h-4 w-4 bg-indigo-500 rounded-full"></div>' : ''}
-          </button>
-
-          <div class="flex-grow min-w-0">
-            <div class="flex items-start justify-between gap-2">
-              <h3 class="font-extrabold text-slate-800 ${t.completed ? 'line-through' : ''} truncate">
-                ${escapeHtml(t.title)}
-              </h3>
-              <span class="text-[10px] font-black uppercase text-slate-400 flex-shrink-0">
-                ${escapeHtml(getProjectName(t.projectId))}
-              </span>
-            </div>
-
-            <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">
-              <span class="text-[10px] font-black uppercase text-slate-400">📅 ${escapeHtml(due)}${isToday ? " · HEUTE" : ""}${isOverdue ? " · ÜBERFÄLLIG" : ""}</span>
-              <span class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(prioLabel(t.prio))}</span>
-              ${t.notes ? `<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
-            </div>
-
-            <div class="flex gap-3 mt-2">
-              <button class="editBtn text-[10px] font-black uppercase text-slate-600 active:scale-95" data-id="${escapeHtml(t.id)}">Bearbeiten</button>
-              <button class="postponeBtn text-[10px] font-black uppercase text-indigo-600 active:scale-95" data-id="${escapeHtml(t.id)}">+1 Tag</button>
-              <button class="deleteBtn text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="${escapeHtml(t.id)}">Löschen</button>
-            </div>
-          </div>
-        `;
+        card.innerHTML =
+          '<button class="toggleBtn h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center" data-id="' + escapeHtml(t.id) + '">' +
+            (t.completed ? '<div class="h-4 w-4 bg-indigo-500 rounded-full"></div>' : '') +
+          '</button>' +
+          '<div class="flex-grow min-w-0">' +
+            '<div class="flex items-start justify-between gap-2">' +
+              '<h3 class="font-extrabold text-slate-800 ' + (t.completed ? "line-through" : "") + ' truncate">' + escapeHtml(t.title) + '</h3>' +
+              '<span class="text-[10px] font-black uppercase text-slate-400 flex-shrink-0">' + escapeHtml(getProjectName(t.projectId)) + '</span>' +
+            '</div>' +
+            '<div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">' +
+              '<span class="text-[10px] font-black uppercase text-slate-400">📅 ' + escapeHtml(due) + (isToday ? " · HEUTE" : "") + (isOverdue ? " · ÜBERFÄLLIG" : "") + '</span>' +
+              '<span class="text-[10px] font-black uppercase text-slate-400">' + escapeHtml(prioLabel(t.prio)) + '</span>' +
+              (t.notes ? '<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ' + escapeHtml(t.notes) + '</span>' : "") +
+            '</div>' +
+            '<div class="flex gap-3 mt-2">' +
+              '<button class="editBtn text-[10px] font-black uppercase text-slate-600 active:scale-95" data-id="' + escapeHtml(t.id) + '">Bearbeiten</button>' +
+              '<button class="postponeBtn text-[10px] font-black uppercase text-indigo-600 active:scale-95" data-id="' + escapeHtml(t.id) + '">+1 Tag</button>' +
+              '<button class="deleteBtn text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="' + escapeHtml(t.id) + '">Löschen</button>' +
+            '</div>' +
+          '</div>';
 
         list.appendChild(card);
       });
 
-      // bind task actions
-      document.querySelectorAll(".toggleBtn").forEach(b => b.addEventListener("click", () => toggleComplete(b.dataset.id)));
-      document.querySelectorAll(".postponeBtn").forEach(b => b.addEventListener("click", () => postponeTask(b.dataset.id)));
-      document.querySelectorAll(".deleteBtn").forEach(b => b.addEventListener("click", () => deleteTask(b.dataset.id)));
-      document.querySelectorAll(".editBtn").forEach(b => b.addEventListener("click", () => editTask(b.dataset.id)));
+      var tbtns = document.querySelectorAll(".toggleBtn");
+      for (var i=0;i<tbtns.length;i++) tbtns[i].addEventListener("click", function(e){ toggleComplete(e.currentTarget.dataset.id); });
+
+      var pbtns = document.querySelectorAll(".postponeBtn");
+      for (var j=0;j<pbtns.length;j++) pbtns[j].addEventListener("click", function(e){ postponeTask(e.currentTarget.dataset.id); });
+
+      var dbtns = document.querySelectorAll(".deleteBtn");
+      for (var k=0;k<dbtns.length;k++) dbtns[k].addEventListener("click", function(e){ deleteTask(e.currentTarget.dataset.id); });
+
+      var ebtns = document.querySelectorAll(".editBtn");
+      for (var m=0;m<ebtns.length;m++) ebtns[m].addEventListener("click", function(e){ editTask(e.currentTarget.dataset.id); });
     }
 
     function renderAll() {
@@ -648,15 +614,15 @@
       showDueBanner();
     }
 
-    // ---- Export / Import / Reset
+    // ---- Export/Import/Reset
     function exportData() {
-      const data = JSON.stringify(state, null, 2);
-      const blob = new Blob([data], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+      var data = JSON.stringify(state, null, 2);
+      var blob = new Blob([data], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
 
-      const a = document.createElement("a");
+      var a = document.createElement("a");
       a.href = url;
-      a.download = `taskhub-backup-${todayISO()}.json`;
+      a.download = "taskhub-backup-" + todayISO() + ".json";
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -665,18 +631,19 @@
     }
 
     function importData(file) {
-      const reader = new FileReader();
-      reader.onload = () => {
+      var reader = new FileReader();
+      reader.onload = function() {
         try {
-          const parsed = JSON.parse(reader.result);
+          var parsed = JSON.parse(reader.result);
           if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
-          // minimal validation
           if (!Array.isArray(parsed.projects) || !Array.isArray(parsed.tasks)) throw new Error("Missing fields");
+
           state = {
-            ...structuredClone(DEFAULT_STATE),
-            ...parsed,
-            ui: { ...structuredClone(DEFAULT_STATE.ui), ...(parsed.ui || {}) }
+            projects: parsed.projects,
+            tasks: parsed.tasks,
+            ui: Object.assign({}, deepClone(DEFAULT_STATE.ui), (parsed.ui || {}))
           };
+
           saveState();
           renderAll();
           alert("Import erfolgreich ✅");
@@ -689,110 +656,102 @@
 
     function resetAll() {
       if (!confirm("Wirklich ALLES löschen?")) return;
-      state = structuredClone(DEFAULT_STATE);
+      state = deepClone(DEFAULT_STATE);
       saveState();
       renderAll();
     }
 
-    // ---- Events
-    $("addTaskBtn").addEventListener("click", addTask);
-    $("taskTitle").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") addTask();
-    });
+    // ---- Bind events (after DOM loaded)
+    window.addEventListener("load", function() {
+      $("addTaskBtn").addEventListener("click", addTask);
+      $("taskTitle").addEventListener("keydown", function(e){ if (e.key === "Enter") addTask(); });
 
-    document.querySelectorAll(".filterBtn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        state.ui.filter = btn.dataset.filter;
+      var fbtns = document.querySelectorAll(".filterBtn");
+      for (var i=0;i<fbtns.length;i++) {
+        fbtns[i].addEventListener("click", function(e){
+          state.ui.filter = e.currentTarget.dataset.filter;
+          saveState();
+          renderAll();
+        });
+      }
+
+      $("projectFilter").addEventListener("change", function(){
+        state.ui.projectFilter = $("projectFilter").value;
         saveState();
         renderAll();
       });
-    });
 
-    $("projectFilter").addEventListener("change", () => {
-      state.ui.projectFilter = $("projectFilter").value;
-      saveState();
-      renderAll();
-    });
+      $("searchInput").addEventListener("input", function(){
+        state.ui.search = $("searchInput").value;
+        saveState();
+        renderAll();
+      });
 
-    $("searchInput").addEventListener("input", () => {
-      state.ui.search = $("searchInput").value;
-      saveState();
-      renderAll();
-    });
+      $("sortMode").addEventListener("change", function(){
+        state.ui.sortMode = $("sortMode").value;
+        saveState();
+        renderAll();
+      });
 
-    $("sortMode").addEventListener("change", () => {
-      state.ui.sortMode = $("sortMode").value;
-      saveState();
-      renderAll();
-    });
-
-    $("requestNotifyBtn").addEventListener("click", async () => {
-      if (!("Notification" in window)) {
-        alert("Dein Browser unterstützt keine Benachrichtigungen.");
-        return;
-      }
-      try {
-        const res = await Notification.requestPermission();
-        if (res === "granted") {
-          alert("Erinnerungen aktiviert ✅ (wenn möglich)");
-          maybeNotifyDueToday();
-        } else {
-          alert("Erinnerungen nicht erlaubt.");
+      $("requestNotifyBtn").addEventListener("click", function(){
+        if (!("Notification" in window)) return alert("Dein Browser unterstützt keine Benachrichtigungen.");
+        try {
+          Notification.requestPermission().then(function(res){
+            if (res === "granted") { alert("Erinnerungen aktiviert ✅"); maybeNotifyDueToday(); }
+            else alert("Erinnerungen nicht erlaubt.");
+          });
+        } catch(e) {
+          alert("Benachrichtigungen konnten nicht aktiviert werden.");
         }
-      } catch {
-        alert("Benachrichtigungen konnten nicht aktiviert werden.");
-      }
-    });
+      });
 
-    $("dismissDueBanner").addEventListener("click", () => {
-      state.ui.dismissedDueBannerFor = todayISO();
-      saveState();
-      showDueBanner();
-    });
+      $("dismissDueBanner").addEventListener("click", function(){
+        state.ui.dismissedDueBannerFor = todayISO();
+        saveState();
+        showDueBanner();
+      });
 
-    // Menu
-    $("openMenuBtn").addEventListener("click", openSheet);
-    $("closeMenuBtn").addEventListener("click", closeSheet);
-    $("sheetBackdrop").addEventListener("click", closeSheet);
+      // menu
+      $("openMenuBtn").addEventListener("click", openSheet);
+      $("closeMenuBtn").addEventListener("click", closeSheet);
+      $("sheetBackdrop").addEventListener("click", closeSheet);
 
-    $("addProjectBtn").addEventListener("click", () => {
-      addProject($("newProjectName").value);
-      $("newProjectName").value = "";
-    });
-    $("newProjectName").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
+      $("addProjectBtn").addEventListener("click", function(){
         addProject($("newProjectName").value);
         $("newProjectName").value = "";
+      });
+      $("newProjectName").addEventListener("keydown", function(e){
+        if (e.key === "Enter") {
+          addProject($("newProjectName").value);
+          $("newProjectName").value = "";
+        }
+      });
+
+      $("exportBtn").addEventListener("click", exportData);
+
+      $("importInput").addEventListener("change", function(e){
+        var f = e.target.files && e.target.files[0];
+        if (f) importData(f);
+        e.target.value = "";
+      });
+
+      $("resetBtn").addEventListener("click", resetAll);
+
+      // periodic while open
+      setInterval(function(){
+        showDueBanner();
+        maybeNotifyDueToday();
+      }, 60000);
+
+      // SW
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./sw.js").catch(function(){});
       }
-    });
 
-    $("exportBtn").addEventListener("click", exportData);
-
-    $("importInput").addEventListener("change", (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (f) importData(f);
-      e.target.value = "";
-    });
-
-    $("resetBtn").addEventListener("click", resetAll);
-
-    // Periodic check while open (every 60s)
-    setInterval(() => {
+      renderAll();
       showDueBanner();
       maybeNotifyDueToday();
-    }, 60_000);
-
-    // ---- Service Worker (PWA Offline)
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch(() => {});
-      });
-    }
-
-    // ---- Startup
-    renderAll();
-    showDueBanner();
-    maybeNotifyDueToday();
+    });
   </script>
 </body>
 </html>
