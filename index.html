@@ -24,7 +24,7 @@
 
     input, select { color:#0f172a !important; -webkit-text-fill-color:#0f172a !important; }
 
-    input[type="datetime-local"]{
+    input[type="date"], input[type="time"]{
       background:#f1f5f9 !important;
       border:1px solid rgba(15,23,42,.10) !important;
       border-radius:14px !important;
@@ -34,8 +34,10 @@
       font-size:14px !important;
       box-shadow:0 1px 0 rgba(15,23,42,.04) inset;
     }
-    input[type="datetime-local"]::-webkit-datetime-edit { color:#0f172a !important; opacity:1 !important; }
-    input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity:.85; }
+    input[type="date"]::-webkit-datetime-edit,
+    input[type="time"]::-webkit-datetime-edit { color:#0f172a !important; opacity:1 !important; }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator { opacity:.85; }
 
     #alarmModal.hidden { display:none; }
   </style>
@@ -106,9 +108,16 @@
         </select>
       </div>
 
-      <div class="mb-3">
-        <label class="text-[11px] font-black uppercase text-slate-400">Datum & Uhrzeit (optional)</label>
-        <input id="taskWhen" type="datetime-local" class="mt-1" />
+      <!-- ✅ iPhone: untereinander / Desktop: nebeneinander -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="text-[11px] font-black uppercase text-slate-400">Datum (optional)</label>
+          <input id="taskDate" type="date" class="mt-1" />
+        </div>
+        <div>
+          <label class="text-[11px] font-black uppercase text-slate-400">Uhrzeit (optional)</label>
+          <input id="taskTime" type="time" class="mt-1" />
+        </div>
       </div>
 
       <input id="taskNotes" type="text" placeholder="Notiz (optional)"
@@ -120,7 +129,7 @@
       </button>
 
       <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Tipp: Setze Datum & Uhrzeit. Wenn „Erinnerungen aktiv“ ist, bekommst du zum Zeitpunkt einen In-App Hinweis (solange TaskHub offen ist).
+        Tipp: Datum + Uhrzeit setzen. Wenn Erinnerungen aktiv sind, kommt ein In-App Popup zum Zeitpunkt (solange TaskHub offen ist).
       </p>
     </section>
 
@@ -168,21 +177,18 @@
   </main>
 
   <script>
-    const KEY = "taskhub_inapp_reminder_v1";
+    const KEY = "taskhub_inapp_reminder_splitdt_v2";
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
-
     let tasks = load();
 
-    // Reminder state
     const REM_KEY = "taskhub_reminders_enabled_v1";
     let remindersEnabled = localStorage.getItem(REM_KEY) === "1";
     let reminderTimeout = null;
     let currentAlarmTaskId = null;
 
-    // Toast
     let toastTimer=null;
     function toast(title, sub=""){
       $("toastText").textContent = title;
@@ -196,15 +202,20 @@
       return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
 
-    function parseWhen(value){
-      if(!value) return null;
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    function formatWhen(d){
+    function formatWhenMs(ms){
+      if(!ms) return "Kein Termin";
+      const d = new Date(ms);
       const pad = (n)=>String(n).padStart(2,"0");
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function buildWhen(dateStr, timeStr){
+      if(!dateStr) return null;
+      const t = (timeStr && timeStr.includes(":")) ? timeStr : "09:00";
+      const [y,m,d] = dateStr.split("-").map(Number);
+      const [hh,mm] = t.split(":").map(Number);
+      const dt = new Date(y, (m-1), d, hh, mm, 0, 0);
+      return isNaN(dt.getTime()) ? null : dt.getTime();
     }
 
     function activeFilter(){ return document.querySelector(".filterBtn.bg-slate-900")?.dataset.filter || "active"; }
@@ -217,11 +228,10 @@
     function updateReminderUI(){
       $("reminderBtn").textContent = remindersEnabled ? "Erinnerungen: aktiv ✅" : "Erinnerungen aktivieren";
       $("reminderHint").textContent = remindersEnabled
-        ? "Erinnerungen sind aktiv. Hinweis: zuverlässig nur, solange TaskHub offen ist. Nächster Alarm wird automatisch geplant."
+        ? "Erinnerungen sind aktiv. Hinweis: zuverlässig nur, solange TaskHub offen ist."
         : "Erinnerungen sind aus. Tipp: Aktivieren → TaskHub offen lassen → Popup erscheint zum Termin.";
     }
 
-    // In-App reminder scheduling
     function nextReminder(){
       const now = Date.now();
       return tasks
@@ -243,11 +253,9 @@
       reminderTimeout = setTimeout(()=> {
         currentAlarmTaskId = nxt.id;
         $("alarmTitle").textContent = nxt.title;
-        $("alarmSub").textContent = `${nxt.project} · ${formatWhen(new Date(nxt.when))}`;
+        $("alarmSub").textContent = `${nxt.project} · ${formatWhenMs(nxt.when)}`;
         $("alarmModal").classList.remove("hidden");
       }, delay);
-
-      toast("Erinnerungen aktiv", `Nächste: ${nxt.title} um ${formatWhen(new Date(nxt.when))}`);
     }
 
     $("alarmCloseBtn").onclick = ()=>{
@@ -298,8 +306,6 @@
         const aw = a.when ? a.when : 9e15;
         const bw = b.when ? b.when : 9e15;
         if(aw!==bw) return aw-bw;
-        const p = a.prio-b.prio;
-        if(p!==0) return p;
         return b.createdAt-a.createdAt;
       });
 
@@ -322,8 +328,6 @@
       }
 
       visible.forEach(t=>{
-        const whenText = t.when ? formatWhen(new Date(t.when)) : "Kein Termin";
-
         const card = document.createElement("div");
         card.className = `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ${t.done ? "opacity-40" : ""}`;
 
@@ -339,7 +343,7 @@
             </div>
 
             <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">
-              <span class="text-[10px] font-black uppercase text-slate-400">📅 ${escapeHtml(whenText)}</span>
+              <span class="text-[10px] font-black uppercase text-slate-400">📅 ${escapeHtml(formatWhenMs(t.when))}</span>
               ${t.notes ? `<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
             </div>
 
@@ -386,15 +390,14 @@
         return;
       }
 
-      const whenVal = $("taskWhen").value || "";
-      const whenDate = parseWhen(whenVal);
+      const whenMs = buildWhen($("taskDate").value, $("taskTime").value);
 
       tasks.push({
         id: String(Date.now()),
         title,
         project: $("taskProject").value,
         prio: parseInt($("taskPrio").value,10) || 2,
-        when: whenDate ? whenDate.getTime() : null,
+        when: whenMs,
         notes: ($("taskNotes").value||"").trim(),
         done: false,
         createdAt: Date.now()
@@ -402,7 +405,8 @@
 
       save(tasks);
       $("taskTitle").value="";
-      $("taskWhen").value="";
+      $("taskDate").value="";
+      $("taskTime").value="";
       $("taskNotes").value="";
       renderAll();
       scheduleNextReminder();
@@ -437,7 +441,6 @@
 
       renderAll();
       scheduleNextReminder();
-
       toast("Bereit ✅", remindersEnabled ? "Erinnerungen aktiv (TaskHub offen lassen)." : "Erinnerungen sind aus.");
     });
   </script>
