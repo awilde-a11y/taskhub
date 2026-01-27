@@ -22,7 +22,6 @@
     #toast { transform: translateY(14px); opacity: 0; pointer-events: none; }
     #toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
 
-    /* iOS Eingabetext sichtbar */
     input, select { color:#0f172a !important; -webkit-text-fill-color:#0f172a !important; }
 
     input[type="datetime-local"]{
@@ -96,7 +95,7 @@
       </button>
 
       <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Für echte iOS Benachrichtigungen: Aufgabe → „📅 In Kalender“ → beim Speichern Kalender „TaskHub“ wählen.
+        Kalender: Tippe bei einer Aufgabe auf „📅 In Kalender“. Dann öffnet sich iOS Kalender/Import – dort Kalender „TaskHub“ wählen und speichern.
       </p>
     </section>
 
@@ -139,14 +138,13 @@
   </main>
 
   <script>
-    const KEY = "taskhub_calendar_checkbox_v1";
+    const KEY = "taskhub_calendar_dataurl_v1";
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
     let tasks = load();
 
-    // Toast
     let toastTimer=null;
     function toast(title, sub=""){
       $("toastText").textContent = title;
@@ -171,7 +169,7 @@
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    // ✅ Kalender-ICS (1 Minute + Alarm exakt)
+    // ✅ iPhone-freundlich: data:text/calendar statt Blob
     function openCalendarEvent(task){
       if(!task.when){
         toast("Kein Termin", "Bitte Datum & Uhrzeit setzen.");
@@ -179,7 +177,7 @@
       }
 
       const start = new Date(task.when);
-      const end = new Date(task.when + 1*60000);
+      const end = new Date(task.when + 1*60000); // 1 Minute
 
       const pad = (n)=>String(n).padStart(2,"0");
       const toICSDate = (d) => {
@@ -214,15 +212,14 @@ END:VALARM
 END:VEVENT
 END:VCALENDAR`;
 
-      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      window.location.href = url;
+      const dataUrl = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
 
-      toast("Kalender öffnet…", "Beim Speichern Kalender „TaskHub“ wählen ✅");
-      setTimeout(()=> URL.revokeObjectURL(url), 10000);
+      // iOS öffnet dann den Import / Kalender
+      window.location.href = dataUrl;
+
+      toast("Kalender öffnet…", "Dann speichern (Kalender „TaskHub“ wählen) ✅");
     }
 
-    // Filters
     function activeFilter(){ return document.querySelector(".filterBtn.bg-slate-900")?.dataset.filter || "active"; }
 
     function renderStats(){
@@ -330,18 +327,11 @@ END:VCALENDAR`;
       });
     }
 
-    function renderAll(){
-      renderStats();
-      renderList();
-    }
+    function renderAll(){ renderStats(); renderList(); }
 
     function addTask(){
       const title = ($("taskTitle").value||"").trim();
-      if(!title){
-        toast("Titel fehlt", "Bitte oben einen Titel eingeben.");
-        $("taskTitle").focus();
-        return;
-      }
+      if(!title){ toast("Titel fehlt", "Bitte oben einen Titel eingeben."); $("taskTitle").focus(); return; }
 
       const whenVal = $("taskWhen").value || "";
       const whenDate = parseWhen(whenVal);
@@ -362,7 +352,7 @@ END:VCALENDAR`;
       $("taskWhen").value="";
       $("taskNotes").value="";
       renderAll();
-      toast("Aufgabe hinzugefügt");
+      toast("Aufgabe hinzugefügt", "📅 In Kalender erscheint bei Termin-Aufgaben.");
     }
 
     window.addEventListener("load", ()=>{
@@ -390,7 +380,7 @@ END:VCALENDAR`;
       $("taskTitle").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addTask(); });
 
       renderAll();
-      toast("Bereit ✅", "📅 In Kalender erscheint bei Aufgaben mit Termin.");
+      toast("Update ✅", "📅 In Kalender öffnet jetzt iOS Import zuverlässig.");
     });
   </script>
 </body>
