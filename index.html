@@ -34,6 +34,12 @@
       font-size:14px !important;
       box-shadow:0 1px 0 rgba(15,23,42,.04) inset;
     }
+
+    input[disabled]{
+      opacity:.55;
+      filter: grayscale(0.1);
+    }
+
     input[type="date"]::-webkit-datetime-edit,
     input[type="time"]::-webkit-datetime-edit { color:#0f172a !important; opacity:1 !important; }
     input[type="date"]::-webkit-calendar-picker-indicator,
@@ -86,7 +92,7 @@
     </div>
   </div>
 
-  <!-- ✅ Edit Modal -->
+  <!-- Edit Modal -->
   <div id="editModal" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute left-0 right-0 top-16 px-5">
@@ -126,7 +132,6 @@
             </div>
           </div>
 
-          <!-- Datum & Uhrzeit getrennt -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="text-[11px] font-black uppercase text-slate-400">Datum</label>
@@ -138,15 +143,15 @@
             </div>
           </div>
 
+          <div class="flex items-center gap-2 pt-1">
+            <input id="editClearWhen" type="checkbox" class="h-4 w-4" />
+            <label for="editClearWhen" class="text-xs font-bold text-slate-600">Termin entfernen</label>
+          </div>
+
           <div>
             <label class="text-[11px] font-black uppercase text-slate-400">Notiz</label>
             <input id="editNotes" type="text"
               class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200" />
-          </div>
-
-          <div class="flex items-center gap-2 pt-2">
-            <input id="editClearWhen" type="checkbox" class="h-4 w-4" />
-            <label for="editClearWhen" class="text-xs font-bold text-slate-600">Termin entfernen</label>
           </div>
         </div>
 
@@ -252,23 +257,20 @@
   </main>
 
   <script>
-    const KEY = "taskhub_inapp_reminder_edit_v1";
+    const KEY = "taskhub_inapp_reminder_edit_v2_clearfix";
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
     let tasks = load();
 
-    // Reminder state
     const REM_KEY = "taskhub_reminders_enabled_v1";
     let remindersEnabled = localStorage.getItem(REM_KEY) === "1";
     let reminderTimeout = null;
     let currentAlarmTaskId = null;
 
-    // Edit state
     let editingTaskId = null;
 
-    // Toast
     let toastTimer=null;
     function toast(title, sub=""){
       $("toastText").textContent = title;
@@ -286,10 +288,9 @@
       if(!ms) return "Kein Termin";
       const d = new Date(ms);
       const pad = (n)=>String(n).padStart(2,"0");
-      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    // Build timestamp from separate date + time
     function buildWhen(dateStr, timeStr){
       if(!dateStr) return null;
       const t = (timeStr && timeStr.includes(":")) ? timeStr : "09:00";
@@ -299,7 +300,6 @@
       return isNaN(dt.getTime()) ? null : dt.getTime();
     }
 
-    // Convert ms -> {dateStr,timeStr}
     function splitWhen(ms){
       if(!ms) return {date:"", time:""};
       const d = new Date(ms);
@@ -309,7 +309,99 @@
       return {date, time};
     }
 
-    // Filters
+    function setEditWhenDisabled(disabled){
+      $("editDate").disabled = disabled;
+      $("editTime").disabled = disabled;
+    }
+
+    function openEditModal(task){
+      editingTaskId = task.id;
+
+      $("editTitle").value = task.title || "";
+      $("editProject").value = task.project || "Inbox";
+      $("editPrio").value = String(task.prio || 2);
+      $("editNotes").value = task.notes || "";
+
+      const parts = splitWhen(task.when);
+      $("editDate").value = parts.date;
+      $("editTime").value = parts.time;
+
+      const noWhen = !task.when;
+      $("editClearWhen").checked = noWhen;
+      setEditWhenDisabled(noWhen);
+
+      $("editModal").classList.remove("hidden");
+      $("editTitle").focus();
+    }
+
+    function closeEditModal(){
+      $("editModal").classList.add("hidden");
+      editingTaskId = null;
+    }
+
+    $("editCancelBtn").onclick = closeEditModal;
+    $("editCloseX").onclick = closeEditModal;
+
+    $("editClearWhen").addEventListener("change", ()=>{
+      const on = $("editClearWhen").checked;
+
+      if(on){
+        // hart leeren + deaktivieren
+        $("editDate").value = "";
+        $("editTime").value = "";
+        setEditWhenDisabled(true);
+      } else {
+        setEditWhenDisabled(false);
+        // optional Fokus aufs Datum
+        $("editDate").focus();
+      }
+    });
+
+    $("editDate").addEventListener("input", ()=>{
+      if($("editDate").value){
+        $("editClearWhen").checked = false;
+        setEditWhenDisabled(false);
+      }
+    });
+    $("editTime").addEventListener("input", ()=>{
+      if($("editTime").value){
+        $("editClearWhen").checked = false;
+        setEditWhenDisabled(false);
+      }
+    });
+
+    $("editSaveBtn").onclick = ()=>{
+      if(!editingTaskId) return;
+
+      const title = ($("editTitle").value||"").trim();
+      if(!title){
+        toast("Titel fehlt", "Bitte Titel eingeben.");
+        $("editTitle").focus();
+        return;
+      }
+
+      const clearWhen = $("editClearWhen").checked;
+      const whenMs = clearWhen ? null : buildWhen($("editDate").value, $("editTime").value);
+
+      tasks = tasks.map(t=>{
+        if(t.id !== editingTaskId) return t;
+        return {
+          ...t,
+          title,
+          project: $("editProject").value,
+          prio: parseInt($("editPrio").value,10) || 2,
+          notes: ($("editNotes").value||"").trim(),
+          when: whenMs
+        };
+      });
+
+      save(tasks);
+      renderAll();
+      scheduleNextReminder();
+      closeEditModal();
+      toast(clearWhen ? "Termin entfernt ✅" : "Gespeichert ✅");
+    };
+
     function activeFilter(){ return document.querySelector(".filterBtn.bg-slate-900")?.dataset.filter || "active"; }
 
     function renderStats(){
@@ -324,7 +416,6 @@
         : "Erinnerungen sind aus. Tipp: Aktivieren → TaskHub offen lassen → Popup erscheint zum Termin.";
     }
 
-    // Reminders
     function nextReminder(){
       const now = Date.now();
       return tasks
@@ -337,10 +428,7 @@
       if(!remindersEnabled) return;
 
       const nxt = nextReminder();
-      if(!nxt){
-        // kein Toast-Spam, nur wenn user aktiv was macht ok
-        return;
-      }
+      if(!nxt) return;
 
       const delay = Math.max(0, nxt.when - Date.now());
       reminderTimeout = setTimeout(()=> {
@@ -380,74 +468,6 @@
       }
     }
 
-    // Edit modal helpers
-    function openEditModal(task){
-      editingTaskId = task.id;
-
-      $("editTitle").value = task.title || "";
-      $("editProject").value = task.project || "Inbox";
-      $("editPrio").value = String(task.prio || 2);
-      $("editNotes").value = task.notes || "";
-      $("editClearWhen").checked = false;
-
-      const parts = splitWhen(task.when);
-      $("editDate").value = parts.date;
-      $("editTime").value = parts.time;
-
-      $("editModal").classList.remove("hidden");
-      $("editTitle").focus();
-    }
-
-    function closeEditModal(){
-      $("editModal").classList.add("hidden");
-      editingTaskId = null;
-    }
-
-    $("editCancelBtn").onclick = closeEditModal;
-    $("editCloseX").onclick = closeEditModal;
-    $("editClearWhen").addEventListener("change", ()=>{
-      if($("editClearWhen").checked){
-        $("editDate").value = "";
-        $("editTime").value = "";
-      }
-    });
-    // wenn user Datum setzt, clear-checkbox aus
-    $("editDate").addEventListener("input", ()=> { if($("editDate").value) $("editClearWhen").checked = false; });
-    $("editTime").addEventListener("input", ()=> { if($("editTime").value) $("editClearWhen").checked = false; });
-
-    $("editSaveBtn").onclick = ()=>{
-      if(!editingTaskId) return;
-
-      const title = ($("editTitle").value||"").trim();
-      if(!title){
-        toast("Titel fehlt", "Bitte Titel eingeben.");
-        $("editTitle").focus();
-        return;
-      }
-
-      const clearWhen = $("editClearWhen").checked;
-      const whenMs = clearWhen ? null : buildWhen($("editDate").value, $("editTime").value);
-
-      tasks = tasks.map(t=>{
-        if(t.id !== editingTaskId) return t;
-        return {
-          ...t,
-          title,
-          project: $("editProject").value,
-          prio: parseInt($("editPrio").value,10) || 2,
-          notes: ($("editNotes").value||"").trim(),
-          when: whenMs
-        };
-      });
-
-      save(tasks);
-      renderAll();
-      scheduleNextReminder();
-      closeEditModal();
-      toast("Gespeichert ✅");
-    };
-
-    // List building
     function getVisibleTasks(){
       const filter = activeFilter();
       const proj = $("projectFilter").value;
@@ -583,7 +603,6 @@
       toast("Aufgabe hinzugefügt");
     }
 
-    // Startup
     window.addEventListener("load", ()=>{
       document.querySelectorAll(".filterBtn").forEach(btn=>{
         btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600";
@@ -609,11 +628,6 @@
       $("taskTitle").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addTask(); });
 
       $("reminderBtn").addEventListener("click", toggleReminders);
-
-      // Close edit modal when tapping outside content
-      $("editModal").addEventListener("click", (e)=>{
-        if(e.target === $("editModal").firstElementChild) closeEditModal();
-      });
 
       renderAll();
       scheduleNextReminder();
