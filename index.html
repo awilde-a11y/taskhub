@@ -121,7 +121,7 @@
             <div>
               <label class="text-[11px] font-black uppercase text-slate-400">Projekt</label>
               <select id="editProject" class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
-                <option value="Inbox">Inbox</option>
+                <option value="Sonstiges">Sonstigesx</option>
                 <option value="Academy">Academy</option>
                 <option value="HSE">HSE</option>
                 <option value="Recruiting">Recruiting</option>
@@ -181,7 +181,7 @@
 
       <div class="grid grid-cols-2 gap-3 mb-4">
         <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
-          <option value="Inbox" selected>Inbox</option>
+          <option value="Sonstiges" selected>Sonstiges</option>
           <option value="Academy">Academy</option>
           <option value="HSE">HSE</option>
           <option value="Recruiting">Recruiting</option>
@@ -229,7 +229,7 @@
       <div class="grid grid-cols-2 gap-3">
         <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
           <option value="all">Alle Projekte</option>
-          <option value="Inbox">Inbox</option>
+          <option value="Sonstiges">Sonstiges</option>
           <option value="Academy">Academy</option>
           <option value="HSE">HSE</option>
           <option value="Recruiting">Recruiting</option>
@@ -323,7 +323,7 @@
       editingTaskId = task.id;
 
       $("editTitle").value = task.title || "";
-      $("editProject").value = task.project || "Inbox";
+      $("editProject").value = task.project || "Sonstiges";
       $("editPrio").value = String(task.prio || 2);
       $("editNotes").value = task.notes || "";
 
