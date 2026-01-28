@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My TaskHub</title>
-  <link rel="manifest" href="manifest.json">
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -40,7 +39,7 @@
     input[type="date"]::-webkit-calendar-picker-indicator,
     input[type="time"]::-webkit-calendar-picker-indicator { opacity:.85; }
 
-    #alarmModal.hidden { display:none; }
+    #alarmModal.hidden, #editModal.hidden { display:none; }
   </style>
 </head>
 
@@ -87,6 +86,82 @@
     </div>
   </div>
 
+  <!-- ✅ Edit Modal -->
+  <div id="editModal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute left-0 right-0 top-16 px-5">
+      <div class="max-w-md mx-auto glass rounded-3xl p-5 shadow-xl">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-sm font-black uppercase text-slate-400">Aufgabe bearbeiten</p>
+            <p class="text-xs font-semibold text-slate-500 mt-1">Änderungen speichern oder abbrechen.</p>
+          </div>
+          <button id="editCloseX" class="text-slate-500 font-black text-xl leading-none">×</button>
+        </div>
+
+        <div class="mt-4 space-y-3">
+          <div>
+            <label class="text-[11px] font-black uppercase text-slate-400">Titel</label>
+            <input id="editTitle" type="text"
+              class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] font-black uppercase text-slate-400">Projekt</label>
+              <select id="editProject" class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
+                <option value="Inbox">Inbox</option>
+                <option value="Academy">Academy</option>
+                <option value="HSE">HSE</option>
+                <option value="Recruiting">Recruiting</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] font-black uppercase text-slate-400">Priorität</label>
+              <select id="editPrio" class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
+                <option value="1">🔥 Hoch</option>
+                <option value="2">⚡ Mittel</option>
+                <option value="3">🌱 Niedrig</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Datum & Uhrzeit getrennt -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] font-black uppercase text-slate-400">Datum</label>
+              <input id="editDate" type="date" class="mt-1" />
+            </div>
+            <div>
+              <label class="text-[11px] font-black uppercase text-slate-400">Uhrzeit</label>
+              <input id="editTime" type="time" class="mt-1" />
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-black uppercase text-slate-400">Notiz</label>
+            <input id="editNotes" type="text"
+              class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200" />
+          </div>
+
+          <div class="flex items-center gap-2 pt-2">
+            <input id="editClearWhen" type="checkbox" class="h-4 w-4" />
+            <label for="editClearWhen" class="text-xs font-bold text-slate-600">Termin entfernen</label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-5">
+          <button id="editSaveBtn" class="bg-indigo-600 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Speichern</button>
+          <button id="editCancelBtn" class="bg-slate-900 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Abbrechen</button>
+        </div>
+
+        <p class="text-[11px] font-semibold text-slate-400 mt-3">
+          Tipp: Wenn du nur Datum setzt, wird automatisch 09:00 verwendet.
+        </p>
+      </div>
+    </div>
+  </div>
+
   <main class="max-w-md mx-auto px-5">
 
     <!-- ADD TASK -->
@@ -109,7 +184,6 @@
         </select>
       </div>
 
-      <!-- ✅ iPhone: untereinander / Desktop: nebeneinander -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div>
           <label class="text-[11px] font-black uppercase text-slate-400">Datum (optional)</label>
@@ -178,18 +252,23 @@
   </main>
 
   <script>
-    const KEY = "taskhub_inapp_reminder_splitdt_v2";
+    const KEY = "taskhub_inapp_reminder_edit_v1";
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
     let tasks = load();
 
+    // Reminder state
     const REM_KEY = "taskhub_reminders_enabled_v1";
     let remindersEnabled = localStorage.getItem(REM_KEY) === "1";
     let reminderTimeout = null;
     let currentAlarmTaskId = null;
 
+    // Edit state
+    let editingTaskId = null;
+
+    // Toast
     let toastTimer=null;
     function toast(title, sub=""){
       $("toastText").textContent = title;
@@ -210,6 +289,7 @@
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
+    // Build timestamp from separate date + time
     function buildWhen(dateStr, timeStr){
       if(!dateStr) return null;
       const t = (timeStr && timeStr.includes(":")) ? timeStr : "09:00";
@@ -219,6 +299,17 @@
       return isNaN(dt.getTime()) ? null : dt.getTime();
     }
 
+    // Convert ms -> {dateStr,timeStr}
+    function splitWhen(ms){
+      if(!ms) return {date:"", time:""};
+      const d = new Date(ms);
+      const pad = (n)=>String(n).padStart(2,"0");
+      const date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return {date, time};
+    }
+
+    // Filters
     function activeFilter(){ return document.querySelector(".filterBtn.bg-slate-900")?.dataset.filter || "active"; }
 
     function renderStats(){
@@ -233,6 +324,7 @@
         : "Erinnerungen sind aus. Tipp: Aktivieren → TaskHub offen lassen → Popup erscheint zum Termin.";
     }
 
+    // Reminders
     function nextReminder(){
       const now = Date.now();
       return tasks
@@ -246,7 +338,7 @@
 
       const nxt = nextReminder();
       if(!nxt){
-        toast("Erinnerungen aktiv", "Keine zukünftige Aufgabe mit Termin gefunden.");
+        // kein Toast-Spam, nur wenn user aktiv was macht ok
         return;
       }
 
@@ -288,6 +380,74 @@
       }
     }
 
+    // Edit modal helpers
+    function openEditModal(task){
+      editingTaskId = task.id;
+
+      $("editTitle").value = task.title || "";
+      $("editProject").value = task.project || "Inbox";
+      $("editPrio").value = String(task.prio || 2);
+      $("editNotes").value = task.notes || "";
+      $("editClearWhen").checked = false;
+
+      const parts = splitWhen(task.when);
+      $("editDate").value = parts.date;
+      $("editTime").value = parts.time;
+
+      $("editModal").classList.remove("hidden");
+      $("editTitle").focus();
+    }
+
+    function closeEditModal(){
+      $("editModal").classList.add("hidden");
+      editingTaskId = null;
+    }
+
+    $("editCancelBtn").onclick = closeEditModal;
+    $("editCloseX").onclick = closeEditModal;
+    $("editClearWhen").addEventListener("change", ()=>{
+      if($("editClearWhen").checked){
+        $("editDate").value = "";
+        $("editTime").value = "";
+      }
+    });
+    // wenn user Datum setzt, clear-checkbox aus
+    $("editDate").addEventListener("input", ()=> { if($("editDate").value) $("editClearWhen").checked = false; });
+    $("editTime").addEventListener("input", ()=> { if($("editTime").value) $("editClearWhen").checked = false; });
+
+    $("editSaveBtn").onclick = ()=>{
+      if(!editingTaskId) return;
+
+      const title = ($("editTitle").value||"").trim();
+      if(!title){
+        toast("Titel fehlt", "Bitte Titel eingeben.");
+        $("editTitle").focus();
+        return;
+      }
+
+      const clearWhen = $("editClearWhen").checked;
+      const whenMs = clearWhen ? null : buildWhen($("editDate").value, $("editTime").value);
+
+      tasks = tasks.map(t=>{
+        if(t.id !== editingTaskId) return t;
+        return {
+          ...t,
+          title,
+          project: $("editProject").value,
+          prio: parseInt($("editPrio").value,10) || 2,
+          notes: ($("editNotes").value||"").trim(),
+          when: whenMs
+        };
+      });
+
+      save(tasks);
+      renderAll();
+      scheduleNextReminder();
+      closeEditModal();
+      toast("Gespeichert ✅");
+    };
+
+    // List building
     function getVisibleTasks(){
       const filter = activeFilter();
       const proj = $("projectFilter").value;
@@ -349,6 +509,7 @@
             </div>
 
             <div class="flex flex-wrap gap-3 mt-2 items-center">
+              <button class="edit text-[10px] font-black uppercase text-indigo-600 active:scale-95" data-id="${t.id}">Bearbeiten</button>
               <button class="del text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="${t.id}">Löschen</button>
             </div>
           </div>
@@ -373,6 +534,14 @@
           save(tasks);
           renderAll();
           scheduleNextReminder();
+        };
+      });
+
+      document.querySelectorAll(".edit").forEach(btn=>{
+        btn.onclick = ()=>{
+          const id = btn.dataset.id;
+          const task = tasks.find(t=>t.id===id);
+          if(task) openEditModal(task);
         };
       });
     }
@@ -414,6 +583,7 @@
       toast("Aufgabe hinzugefügt");
     }
 
+    // Startup
     window.addEventListener("load", ()=>{
       document.querySelectorAll(".filterBtn").forEach(btn=>{
         btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600";
@@ -439,6 +609,11 @@
       $("taskTitle").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addTask(); });
 
       $("reminderBtn").addEventListener("click", toggleReminders);
+
+      // Close edit modal when tapping outside content
+      $("editModal").addEventListener("click", (e)=>{
+        if(e.target === $("editModal").firstElementChild) closeEditModal();
+      });
 
       renderAll();
       scheduleNextReminder();
