@@ -4,11 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My TaskHub</title>
-  <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-512.png">
-<meta name="theme-color" content="#4f46e5">
 
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="theme-color" content="#4f46e5">
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -39,11 +38,7 @@
       font-size:14px !important;
       box-shadow:0 1px 0 rgba(15,23,42,.04) inset;
     }
-
-    input[disabled]{
-      opacity:.55;
-      filter: grayscale(0.1);
-    }
+    input[disabled]{ opacity:.55; }
 
     input[type="date"]::-webkit-datetime-edit,
     input[type="time"]::-webkit-datetime-edit { color:#0f172a !important; opacity:1 !important; }
@@ -121,7 +116,7 @@
             <div>
               <label class="text-[11px] font-black uppercase text-slate-400">Projekt</label>
               <select id="editProject" class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
-                <option value="Sonstiges">Sonstigesx</option>
+                <option value="Inbox">Inbox</option>
                 <option value="Academy">Academy</option>
                 <option value="HSE">HSE</option>
                 <option value="Recruiting">Recruiting</option>
@@ -181,7 +176,7 @@
 
       <div class="grid grid-cols-2 gap-3 mb-4">
         <select id="taskProject" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
-          <option value="Sonstiges" selected>Sonstiges</option>
+          <option value="Inbox" selected>Inbox</option>
           <option value="Academy">Academy</option>
           <option value="HSE">HSE</option>
           <option value="Recruiting">Recruiting</option>
@@ -212,10 +207,6 @@
         class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
         Hinzufügen
       </button>
-
-      <p class="text-[11px] font-semibold text-slate-400 mt-3 leading-snug">
-        Tipp: Datum + Uhrzeit setzen. Wenn Erinnerungen aktiv sind, kommt ein In-App Popup zum Zeitpunkt (solange TaskHub offen ist).
-      </p>
     </section>
 
     <!-- FILTERS -->
@@ -229,7 +220,7 @@
       <div class="grid grid-cols-2 gap-3">
         <select id="projectFilter" class="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200">
           <option value="all">Alle Projekte</option>
-          <option value="Sonstiges">Sonstiges</option>
+          <option value="Inbox">Inbox</option>
           <option value="Academy">Academy</option>
           <option value="HSE">HSE</option>
           <option value="Recruiting">Recruiting</option>
@@ -262,7 +253,7 @@
   </main>
 
   <script>
-    const KEY = "taskhub_inapp_reminder_edit_v2_clearfix";
+    const KEY = "taskhub_final_with_prio_badge_v1";
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
@@ -293,7 +284,7 @@
       if(!ms) return "Kein Termin";
       const d = new Date(ms);
       const pad = (n)=>String(n).padStart(2,"0");
-      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
     function buildWhen(dateStr, timeStr){
@@ -319,11 +310,23 @@
       $("editTime").disabled = disabled;
     }
 
+    function prioLabel(prio){
+      if(prio === 1) return "🔥 Hoch";
+      if(prio === 2) return "⚡ Mittel";
+      return "🌱 Niedrig";
+    }
+
+    function prioBadgeClass(prio){
+      if(prio === 1) return "bg-red-100 text-red-700";
+      if(prio === 2) return "bg-amber-100 text-amber-700";
+      return "bg-emerald-100 text-emerald-700";
+    }
+
     function openEditModal(task){
       editingTaskId = task.id;
 
       $("editTitle").value = task.title || "";
-      $("editProject").value = task.project || "Sonstiges";
+      $("editProject").value = task.project || "Inbox";
       $("editPrio").value = String(task.prio || 2);
       $("editNotes").value = task.notes || "";
 
@@ -349,15 +352,12 @@
 
     $("editClearWhen").addEventListener("change", ()=>{
       const on = $("editClearWhen").checked;
-
       if(on){
-        // hart leeren + deaktivieren
         $("editDate").value = "";
         $("editTime").value = "";
         setEditWhenDisabled(true);
       } else {
         setEditWhenDisabled(false);
-        // optional Fokus aufs Datum
         $("editDate").focus();
       }
     });
@@ -514,6 +514,9 @@
       }
 
       visible.forEach(t=>{
+        const badge = prioLabel(t.prio);
+        const badgeCls = prioBadgeClass(t.prio);
+
         const card = document.createElement("div");
         card.className = `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ${t.done ? "opacity-40" : ""}`;
 
@@ -525,7 +528,13 @@
           <div class="flex-grow min-w-0">
             <div class="flex items-start justify-between gap-2">
               <h3 class="font-extrabold text-slate-800 ${t.done ? "line-through" : ""} truncate">${escapeHtml(t.title)}</h3>
-              <span class="text-[10px] font-black uppercase text-slate-400 flex-shrink-0">${escapeHtml(t.project)}</span>
+
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(t.project)}</span>
+                <span class="px-2 py-1 rounded-full text-[10px] font-black ${badgeCls}">
+                  ${badge}
+                </span>
+              </div>
             </div>
 
             <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">
