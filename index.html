@@ -150,10 +150,8 @@
 
           <div>
             <label class="text-[11px] font-black uppercase text-slate-400">Notiz</label>
-            <textarea id="editNotes" rows="3"
-              class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200"
-              placeholder="z.B. Warum es heute nicht geklappt hat…"></textarea>
-            <p class="text-[11px] font-semibold text-slate-400 mt-2">Tipp: Kurzer Grund + nächster Schritt.</p>
+            <input id="editNotes" type="text"
+              class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200" />
           </div>
         </div>
 
@@ -161,6 +159,10 @@
           <button id="editSaveBtn" class="bg-indigo-600 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Speichern</button>
           <button id="editCancelBtn" class="bg-slate-900 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Abbrechen</button>
         </div>
+
+        <p class="text-[11px] font-semibold text-slate-400 mt-3">
+          Tipp: Wenn du nur Datum setzt, wird automatisch 09:00 verwendet.
+        </p>
       </div>
     </div>
   </div>
@@ -198,8 +200,8 @@
         </div>
       </div>
 
-      <textarea id="taskNotes" rows="2" placeholder="Notiz (optional)"
-        class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200 mb-4"></textarea>
+      <input id="taskNotes" type="text" placeholder="Notiz (optional)"
+        class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200 mb-4">
 
       <button id="addTaskBtn"
         class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
@@ -251,35 +253,28 @@
   </main>
 
   <script>
-    // ✅ Stabiler Speicher-Key + Migration (damit Updates NICHT wie Reset wirken)
     const KEY = "taskhub_data_v1";
-    const OLD_KEYS = [
-      "taskhub_final_with_prio_badge_v1",
-      "myTaskHubData",
-      "taskhub_inapp_reminder_edit_v1",
-      "taskhub_inapp_reminder_edit_v2_clearfix"
-    ];
+const OLD_KEYS = [
+  "taskhub_final_with_prio_badge_v1",
+  "myTaskHubData"
+];
 
-    function migrateIfNeeded(){
-      if (localStorage.getItem(KEY)) return;
-      for (const k of OLD_KEYS){
-        const v = localStorage.getItem(k);
-        if (v){
-          localStorage.setItem(KEY, v);
-          break;
-        }
-      }
+function migrateIfNeeded(){
+  if (localStorage.getItem(KEY)) return;
+  for (const k of OLD_KEYS){
+    const v = localStorage.getItem(k);
+    if (v){
+      localStorage.setItem(KEY, v);
+      break;
     }
-    migrateIfNeeded();
-
+  }
+}
+migrateIfNeeded();
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
     let tasks = load();
-
-    // Normalisieren: alte Tasks ohne notes -> ""
-    tasks = tasks.map(t => ({ ...t, notes: (t.notes ?? "") }));
 
     const REM_KEY = "taskhub_reminders_enabled_v1";
     let remindersEnabled = localStorage.getItem(REM_KEY) === "1";
@@ -343,7 +338,7 @@
       return "bg-emerald-100 text-emerald-700";
     }
 
-    function openEditModal(task, focusNotes=false){
+    function openEditModal(task){
       editingTaskId = task.id;
 
       $("editTitle").value = task.title || "";
@@ -360,7 +355,7 @@
       setEditWhenDisabled(noWhen);
 
       $("editModal").classList.remove("hidden");
-      if(focusNotes) $("editNotes").focus(); else $("editTitle").focus();
+      $("editTitle").focus();
     }
 
     function closeEditModal(){
@@ -508,12 +503,12 @@
 
       list.sort((a,b)=>{
         if(filter==="all" && a.done!==b.done) return a.done?1:-1;
-        if(sortMode==="created") return (b.createdAt||0)-(a.createdAt||0);
-        if(sortMode==="prio") return (a.prio||2)-(b.prio||2);
+        if(sortMode==="created") return b.createdAt-a.createdAt;
+        if(sortMode==="prio") return a.prio-b.prio;
         const aw = a.when ? a.when : 9e15;
         const bw = b.when ? b.when : 9e15;
         if(aw!==bw) return aw-bw;
-        return (b.createdAt||0)-(a.createdAt||0);
+        return b.createdAt-a.createdAt;
       });
 
       return list;
@@ -537,13 +532,12 @@
       visible.forEach(t=>{
         const badge = prioLabel(t.prio);
         const badgeCls = prioBadgeClass(t.prio);
-        const noteText = (t.notes||"").trim();
 
         const card = document.createElement("div");
-        card.className = `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-start gap-4 ${t.done ? "opacity-40" : ""}`;
+        card.className = `task-card glass priority-${t.prio} p-4 rounded-2xl shadow-sm flex items-center gap-4 ${t.done ? "opacity-40" : ""}`;
 
         card.innerHTML = `
-          <button class="toggle mt-1 h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center" data-id="${t.id}">
+          <button class="toggle h-7 w-7 rounded-full border-2 border-indigo-500 flex-shrink-0 flex items-center justify-center" data-id="${t.id}">
             ${t.done ? '<div class="h-4 w-4 bg-indigo-500 rounded-full"></div>' : ''}
           </button>
 
@@ -552,7 +546,7 @@
               <h3 class="font-extrabold text-slate-800 ${t.done ? "line-through" : ""} truncate">${escapeHtml(t.title)}</h3>
 
               <div class="flex items-center gap-2 flex-shrink-0">
-                <span class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(t.project||"")}</span>
+                <span class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(t.project)}</span>
                 <span class="px-2 py-1 rounded-full text-[10px] font-black ${badgeCls}">
                   ${badge}
                 </span>
@@ -561,19 +555,11 @@
 
             <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">
               <span class="text-[10px] font-black uppercase text-slate-400">📅 ${escapeHtml(formatWhenMs(t.when))}</span>
+              ${t.notes ? `<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
             </div>
 
-            ${noteText ? `
-              <div class="mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                <p class="text-xs font-semibold text-slate-700 whitespace-pre-wrap break-words">🗒️ ${escapeHtml(noteText)}</p>
-              </div>
-            ` : ``}
-
-            <div class="flex flex-wrap gap-3 mt-3 items-center">
+            <div class="flex flex-wrap gap-3 mt-2 items-center">
               <button class="edit text-[10px] font-black uppercase text-indigo-600 active:scale-95" data-id="${t.id}">Bearbeiten</button>
-              <button class="note text-[10px] font-black uppercase text-slate-700 active:scale-95" data-id="${t.id}">
-                ${noteText ? "Notiz" : "Notiz hinzufügen"}
-              </button>
               <button class="del text-[10px] font-black uppercase text-red-400 active:scale-95" data-id="${t.id}">Löschen</button>
             </div>
           </div>
@@ -605,16 +591,7 @@
         btn.onclick = ()=>{
           const id = btn.dataset.id;
           const task = tasks.find(t=>t.id===id);
-          if(task) openEditModal(task, false);
-        };
-      });
-
-      // ✅ Neuer Quick-Notiz Button (öffnet Modal direkt im Notizfeld)
-      document.querySelectorAll(".note").forEach(btn=>{
-        btn.onclick = ()=>{
-          const id = btn.dataset.id;
-          const task = tasks.find(t=>t.id===id);
-          if(task) openEditModal(task, true);
+          if(task) openEditModal(task);
         };
       });
     }
@@ -657,7 +634,6 @@
     }
 
     window.addEventListener("load", ()=>{
-      // Defaults
       document.querySelectorAll(".filterBtn").forEach(btn=>{
         btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600";
       });
