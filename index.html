@@ -277,6 +277,7 @@ migrateIfNeeded();
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
     let tasks = load();
+    tasks = tasks.map(t => ({ ...t, notes: (t.notes ?? "") }));
 
     const REM_KEY = "taskhub_reminders_enabled_v1";
     let remindersEnabled = localStorage.getItem(REM_KEY) === "1";
@@ -343,7 +344,7 @@ migrateIfNeeded();
     function openEditModal(task){
       editingTaskId = task.id;
 
-      $("editTitle").value = task.title || "";
+      $("editTitle").value = task.notes || "";
       $("editProject").value = task.project || "Sonstiges";
       $("editPrio").value = String(task.prio || 2);
       $("editNotes").value = task.notes || "";
