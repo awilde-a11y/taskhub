@@ -148,12 +148,15 @@
             <label for="editClearWhen" class="text-xs font-bold text-slate-600">Termin entfernen</label>
           </div>
 
-          <div>
-            <label class="text-[11px] font-black uppercase text-slate-400">Notiz</label>
-            <textarea id="editNotes" rows="3"
-  class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200"
-  placeholder="z.B. Warum es heute nicht geklappt hat…"></textarea>
-          </div>
+        <div>
+  <label class="text-[11px] font-black uppercase text-slate-400">Notiz</label>
+  <textarea id="editNotes" rows="3"
+    class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200"
+    placeholder="z.B. Grund / Status / nächster Schritt…"
+    autocomplete="off"
+    autocapitalize="sentences"
+    spellcheck="true"></textarea>
+</div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mt-5">
