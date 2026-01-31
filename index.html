@@ -253,7 +253,23 @@
   </main>
 
   <script>
-    const KEY = "taskhub_final_with_prio_badge_v1";
+    const KEY = "taskhub_data_v1";
+const OLD_KEYS = [
+  "taskhub_final_with_prio_badge_v1",
+  "myTaskHubData"
+];
+
+function migrateIfNeeded(){
+  if (localStorage.getItem(KEY)) return;
+  for (const k of OLD_KEYS){
+    const v = localStorage.getItem(k);
+    if (v){
+      localStorage.setItem(KEY, v);
+      break;
+    }
+  }
+}
+migrateIfNeeded();
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
