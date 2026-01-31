@@ -178,6 +178,7 @@
     <!-- ADD TASK -->
     <section class="glass rounded-3xl p-5 shadow-sm mb-6">
       <input id="taskTitle" type="text" placeholder="Neue Aufgabe tippen..."
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
         class="w-full text-lg font-semibold bg-transparent border-none focus:ring-0 outline-none mb-4 text-slate-800">
 
       <div class="grid grid-cols-2 gap-3 mb-4">
@@ -429,6 +430,7 @@ migrateIfNeeded();
       renderAll();
       scheduleNextReminder();
       closeEditModal();
+      setTimeout(() => document.activeElement && document.activeElement.blur(), 0);
       toast(clearWhen ? "Termin entfernt ✅" : "Gespeichert ✅");
     };
 
