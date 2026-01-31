@@ -260,8 +260,10 @@
     const KEY = "taskhub_data_v1";
 const OLD_KEYS = [
   "taskhub_final_with_prio_badge_v1",
-  "myTaskHubData"
+  "myTaskHubData",
+  "taskhub_final_with_prio_badge_v1"
 ];
+
 
 function migrateIfNeeded(){
   if (localStorage.getItem(KEY)) return;
