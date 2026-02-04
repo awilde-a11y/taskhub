@@ -1,5 +1,5 @@
 /* sw.js — TaskHub (safe caching) */
-const CACHE_NAME = "taskhub-cache-v9"; // <- bei Updates Zahl erhöhen
+const CACHE_NAME = "taskhub-cache-v10"; // <- bei Updates Zahl erhöhen
 const ASSETS = [
   "./",
   "./index.html",
