@@ -26,7 +26,7 @@
     #toast { transform: translateY(14px); opacity: 0; pointer-events: none; }
     #toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
 
-    input, select { color:#0f172a !important; -webkit-text-fill-color:#0f172a !important; }
+    input, select, textarea { color:#0f172a !important; -webkit-text-fill-color:#0f172a !important; }
 
     input[type="date"], input[type="time"]{
       background:#f1f5f9 !important;
@@ -38,13 +38,20 @@
       font-size:14px !important;
       box-shadow:0 1px 0 rgba(15,23,42,.04) inset;
     }
+
+    textarea{
+      background:#f1f5f9 !important;
+      border:1px solid rgba(15,23,42,.10) !important;
+      border-radius:14px !important;
+      padding:10px 12px !important;
+      width:100% !important;
+      font-weight:700 !important;
+      font-size:14px !important;
+      box-shadow:0 1px 0 rgba(15,23,42,.04) inset;
+      resize: none;
+    }
+
     input[disabled]{ opacity:.55; }
-
-    input[type="date"]::-webkit-datetime-edit,
-    input[type="time"]::-webkit-datetime-edit { color:#0f172a !important; opacity:1 !important; }
-    input[type="date"]::-webkit-calendar-picker-indicator,
-    input[type="time"]::-webkit-calendar-picker-indicator { opacity:.85; }
-
     #alarmModal.hidden, #editModal.hidden { display:none; }
   </style>
 </head>
@@ -109,6 +116,7 @@
           <div>
             <label class="text-[11px] font-black uppercase text-slate-400">Titel</label>
             <input id="editTitle" type="text"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
               class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200" />
           </div>
 
@@ -148,27 +156,18 @@
             <label for="editClearWhen" class="text-xs font-bold text-slate-600">Termin entfernen</label>
           </div>
 
-        <div>
-  <label class="text-[11px] font-black uppercase text-slate-400">Notiz</label>
-  <textarea id="editNotes" rows="3"
-    class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200"
-    placeholder="z.B. Grund / Status / nächster Schritt…"
-    autocomplete="off"
-    autocorrect="off"
-    autocapitalize="sentences"
-    spellcheck="false"
-  inputmode="text"></textarea>
-</div>
+          <div>
+            <label class="text-[11px] font-black uppercase text-slate-400">Notizen</label>
+            <textarea id="editNotes" rows="3"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+              placeholder="z.B. Grund / Status / nächster Schritt…"></textarea>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mt-5">
           <button id="editSaveBtn" class="bg-indigo-600 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Speichern</button>
           <button id="editCancelBtn" class="bg-slate-900 text-white rounded-2xl py-3 font-extrabold active:opacity-90">Abbrechen</button>
         </div>
-
-        <p class="text-[11px] font-semibold text-slate-400 mt-3">
-          Tipp: Wenn du nur Datum setzt, wird automatisch 09:00 verwendet.
-        </p>
       </div>
     </div>
   </div>
@@ -206,9 +205,6 @@
           <input id="taskTime" type="time" class="mt-1" />
         </div>
       </div>
-
-      <input id="taskNotes" type="text" placeholder="Notiz (optional)"
-        class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200 mb-4">
 
       <button id="addTaskBtn"
         class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl active:bg-slate-800 transition-colors shadow-lg">
@@ -260,39 +256,41 @@
   </main>
 
   <script>
+    // ===== Storage (mit Migration, damit Aufgaben nicht "weg" sind) =====
     const KEY = "taskhub_data_v1";
-const OLD_KEYS = [
-  "taskhub_final_with_prio_badge_v1",
-  "myTaskHubData",
-  "taskhub_final_with_prio_badge_v1"
-];
+    const OLD_KEYS = ["taskhub_final_with_prio_badge_v1", "myTaskHubData", "taskhub_data_v1"];
 
+    (function migrate(){
+      try{
+        const cur = localStorage.getItem(KEY);
+        if(cur && cur !== "[]") return;
+        for(const k of OLD_KEYS){
+          const old = localStorage.getItem(k);
+          if(old && old !== "[]"){
+            localStorage.setItem(KEY, old);
+            return;
+          }
+        }
+      }catch(e){}
+    })();
 
-function migrateIfNeeded(){
-  if (localStorage.getItem(KEY)) return;
-  for (const k of OLD_KEYS){
-    const v = localStorage.getItem(k);
-    if (v){
-      localStorage.setItem(KEY, v);
-      break;
-    }
-  }
-}
-migrateIfNeeded();
     const $ = (id) => document.getElementById(id);
 
     function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
-    let tasks = load();
-    tasks = tasks.map(t => ({ ...t, notes: (t.notes ?? "") }));
 
+    let tasks = load().map(t => ({ ...t, notes: (t.notes ?? "") }));
+
+    // ===== Reminders =====
     const REM_KEY = "taskhub_reminders_enabled_v1";
     let remindersEnabled = localStorage.getItem(REM_KEY) === "1";
     let reminderTimeout = null;
     let currentAlarmTaskId = null;
 
+    // ===== Edit state =====
     let editingTaskId = null;
 
+    // ===== Toast =====
     let toastTimer=null;
     function toast(title, sub=""){
       $("toastText").textContent = title;
@@ -326,14 +324,10 @@ migrateIfNeeded();
       if(!ms) return {date:"", time:""};
       const d = new Date(ms);
       const pad = (n)=>String(n).padStart(2,"0");
-      const date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-      const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      return {date, time};
-    }
-
-    function setEditWhenDisabled(disabled){
-      $("editDate").disabled = disabled;
-      $("editTime").disabled = disabled;
+      return {
+        date: `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,
+        time: `${pad(d.getHours())}:${pad(d.getMinutes())}`
+      };
     }
 
     function prioLabel(prio){
@@ -348,10 +342,11 @@ migrateIfNeeded();
       return "bg-emerald-100 text-emerald-700";
     }
 
- function openEditModal(task){
+    // ===== Edit Modal =====
+    function openEditModal(task){
       editingTaskId = task.id;
 
-      $("editTitle").value = task.notes || "";
+      $("editTitle").value = task.title || "";
       $("editProject").value = task.project || "Sonstiges";
       $("editPrio").value = String(task.prio || 2);
       $("editNotes").value = task.notes || "";
@@ -362,7 +357,8 @@ migrateIfNeeded();
 
       const noWhen = !task.when;
       $("editClearWhen").checked = noWhen;
-      setEditWhenDisabled(noWhen);
+      $("editDate").disabled = noWhen;
+      $("editTime").disabled = noWhen;
 
       $("editModal").classList.remove("hidden");
       $("editTitle").focus();
@@ -381,23 +377,12 @@ migrateIfNeeded();
       if(on){
         $("editDate").value = "";
         $("editTime").value = "";
-        setEditWhenDisabled(true);
+        $("editDate").disabled = true;
+        $("editTime").disabled = true;
       } else {
-        setEditWhenDisabled(false);
+        $("editDate").disabled = false;
+        $("editTime").disabled = false;
         $("editDate").focus();
-      }
-    });
-
-    $("editDate").addEventListener("input", ()=>{
-      if($("editDate").value){
-        $("editClearWhen").checked = false;
-        setEditWhenDisabled(false);
-      }
-    });
-    $("editTime").addEventListener("input", ()=>{
-      if($("editTime").value){
-        $("editClearWhen").checked = false;
-        setEditWhenDisabled(false);
       }
     });
 
@@ -421,7 +406,7 @@ migrateIfNeeded();
           title,
           project: $("editProject").value,
           prio: parseInt($("editPrio").value,10) || 2,
-          notes: ($("editNotes").value||"").trim(),
+          notes: ($("editNotes").value || "").trim(),
           when: whenMs
         };
       });
@@ -430,75 +415,15 @@ migrateIfNeeded();
       renderAll();
       scheduleNextReminder();
       closeEditModal();
+
+      // Fokus weg, damit iOS nichts "reinschiebt"
       setTimeout(() => document.activeElement && document.activeElement.blur(), 0);
+
       toast(clearWhen ? "Termin entfernt ✅" : "Gespeichert ✅");
     };
 
+    // ===== Filters / Sorting =====
     function activeFilter(){ return document.querySelector(".filterBtn.bg-slate-900")?.dataset.filter || "active"; }
-
-    function renderStats(){
-      const open = tasks.filter(t=>!t.done).length;
-      $("stats").textContent = `${open} offen · ${tasks.length-open} erledigt`;
-    }
-
-    function updateReminderUI(){
-      $("reminderBtn").textContent = remindersEnabled ? "Erinnerungen: aktiv ✅" : "Erinnerungen aktivieren";
-      $("reminderHint").textContent = remindersEnabled
-        ? "Erinnerungen sind aktiv. Hinweis: zuverlässig nur, solange TaskHub offen ist."
-        : "Erinnerungen sind aus. Tipp: Aktivieren → TaskHub offen lassen → Popup erscheint zum Termin.";
-    }
-
-    function nextReminder(){
-      const now = Date.now();
-      return tasks
-        .filter(t=>!t.done && t.when && t.when >= now)
-        .sort((a,b)=> a.when - b.when)[0] || null;
-    }
-
-    function scheduleNextReminder(){
-      if(reminderTimeout){ clearTimeout(reminderTimeout); reminderTimeout=null; }
-      if(!remindersEnabled) return;
-
-      const nxt = nextReminder();
-      if(!nxt) return;
-
-      const delay = Math.max(0, nxt.when - Date.now());
-      reminderTimeout = setTimeout(()=> {
-        currentAlarmTaskId = nxt.id;
-        $("alarmTitle").textContent = nxt.title;
-        $("alarmSub").textContent = `${nxt.project} · ${formatWhenMs(nxt.when)}`;
-        $("alarmModal").classList.remove("hidden");
-      }, delay);
-    }
-
-    $("alarmCloseBtn").onclick = ()=>{
-      $("alarmModal").classList.add("hidden");
-      scheduleNextReminder();
-    };
-    $("alarmDoneBtn").onclick = ()=>{
-      if(currentAlarmTaskId){
-        tasks = tasks.map(t=> t.id===currentAlarmTaskId ? ({...t, done:true}) : t);
-        save(tasks);
-        renderAll();
-      }
-      $("alarmModal").classList.add("hidden");
-      scheduleNextReminder();
-    };
-
-    function toggleReminders(){
-      remindersEnabled = !remindersEnabled;
-      localStorage.setItem(REM_KEY, remindersEnabled ? "1" : "0");
-      updateReminderUI();
-
-      if(remindersEnabled){
-        toast("Erinnerungen aktiviert ✅", "TaskHub bitte offen lassen.");
-        scheduleNextReminder();
-      } else {
-        if(reminderTimeout) clearTimeout(reminderTimeout);
-        reminderTimeout = null;
-        toast("Erinnerungen aus", "");
-      }
-    }
 
     function getVisibleTasks(){
       const filter = activeFilter();
@@ -514,15 +439,20 @@ migrateIfNeeded();
 
       list.sort((a,b)=>{
         if(filter==="all" && a.done!==b.done) return a.done?1:-1;
-        if(sortMode==="created") return b.createdAt-a.createdAt;
-        if(sortMode==="prio") return a.prio-b.prio;
+        if(sortMode==="created") return (b.createdAt||0)-(a.createdAt||0);
+        if(sortMode==="prio") return (a.prio||2)-(b.prio||2);
         const aw = a.when ? a.when : 9e15;
         const bw = b.when ? b.when : 9e15;
         if(aw!==bw) return aw-bw;
-        return b.createdAt-a.createdAt;
+        return (b.createdAt||0)-(a.createdAt||0);
       });
 
       return list;
+    }
+
+    function renderStats(){
+      const open = tasks.filter(t=>!t.done).length;
+      $("stats").textContent = `${open} offen · ${tasks.length-open} erledigt`;
     }
 
     function renderList(){
@@ -557,16 +487,14 @@ migrateIfNeeded();
               <h3 class="font-extrabold text-slate-800 ${t.done ? "line-through" : ""} truncate">${escapeHtml(t.title)}</h3>
 
               <div class="flex items-center gap-2 flex-shrink-0">
-                <span class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(t.project)}</span>
-                <span class="px-2 py-1 rounded-full text-[10px] font-black ${badgeCls}">
-                  ${badge}
-                </span>
+                <span class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(t.project||"")}</span>
+                <span class="px-2 py-1 rounded-full text-[10px] font-black ${badgeCls}">${badge}</span>
               </div>
             </div>
 
             <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 items-center">
               <span class="text-[10px] font-black uppercase text-slate-400">📅 ${escapeHtml(formatWhenMs(t.when))}</span>
-              ${t.notes ? `<span class="text-[10px] font-black uppercase text-slate-400">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
+              ${t.notes ? `<span class="text-[10px] font-semibold text-slate-500">🗒️ ${escapeHtml(t.notes)}</span>` : ""}
             </div>
 
             <div class="flex flex-wrap gap-3 mt-2 items-center">
@@ -607,12 +535,20 @@ migrateIfNeeded();
       });
     }
 
+    function updateReminderUI(){
+      $("reminderBtn").textContent = remindersEnabled ? "Erinnerungen: aktiv ✅" : "Erinnerungen aktivieren";
+      $("reminderHint").textContent = remindersEnabled
+        ? "Erinnerungen sind aktiv. Hinweis: zuverlässig nur, solange TaskHub offen ist."
+        : "Erinnerungen sind aus. Tipp: Aktivieren → TaskHub offen lassen → Popup erscheint zum Termin.";
+    }
+
     function renderAll(){
       renderStats();
       renderList();
       updateReminderUI();
     }
 
+    // ===== Add Task =====
     function addTask(){
       const title = ($("taskTitle").value||"").trim();
       if(!title){
@@ -629,22 +565,79 @@ migrateIfNeeded();
         project: $("taskProject").value,
         prio: parseInt($("taskPrio").value,10) || 2,
         when: whenMs,
-        notes: ($("taskNotes").value||"").trim(),
+        notes: "",
         done: false,
         createdAt: Date.now()
       });
 
       save(tasks);
+
       $("taskTitle").value="";
       $("taskDate").value="";
       $("taskTime").value="";
-      $("taskNotes").value="";
+
       renderAll();
       scheduleNextReminder();
       toast("Aufgabe hinzugefügt");
     }
 
+    // ===== Reminders scheduling =====
+    function nextReminder(){
+      const now = Date.now();
+      return tasks
+        .filter(t=>!t.done && t.when && t.when >= now)
+        .sort((a,b)=> a.when - b.when)[0] || null;
+    }
+
+    function scheduleNextReminder(){
+      if(reminderTimeout){ clearTimeout(reminderTimeout); reminderTimeout=null; }
+      if(!remindersEnabled) return;
+
+      const nxt = nextReminder();
+      if(!nxt) return;
+
+      const delay = Math.max(0, nxt.when - Date.now());
+      reminderTimeout = setTimeout(()=> {
+        currentAlarmTaskId = nxt.id;
+        $("alarmTitle").textContent = nxt.title;
+        $("alarmSub").textContent = `${nxt.project} · ${formatWhenMs(nxt.when)}`;
+        $("alarmModal").classList.remove("hidden");
+      }, delay);
+    }
+
+    $("alarmCloseBtn").onclick = ()=>{
+      $("alarmModal").classList.add("hidden");
+      scheduleNextReminder();
+    };
+
+    $("alarmDoneBtn").onclick = ()=>{
+      if(currentAlarmTaskId){
+        tasks = tasks.map(t=> t.id===currentAlarmTaskId ? ({...t, done:true}) : t);
+        save(tasks);
+        renderAll();
+      }
+      $("alarmModal").classList.add("hidden");
+      scheduleNextReminder();
+    };
+
+    function toggleReminders(){
+      remindersEnabled = !remindersEnabled;
+      localStorage.setItem(REM_KEY, remindersEnabled ? "1" : "0");
+      updateReminderUI();
+
+      if(remindersEnabled){
+        toast("Erinnerungen aktiviert ✅", "TaskHub bitte offen lassen.");
+        scheduleNextReminder();
+      } else {
+        if(reminderTimeout) clearTimeout(reminderTimeout);
+        reminderTimeout = null;
+        toast("Erinnerungen aus", "");
+      }
+    }
+
+    // ===== Startup =====
     window.addEventListener("load", ()=>{
+      // Filter buttons init
       document.querySelectorAll(".filterBtn").forEach(btn=>{
         btn.className = "filterBtn flex-1 rounded-2xl py-2 text-xs font-extrabold uppercase bg-slate-100 text-slate-600";
       });
