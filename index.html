@@ -155,19 +155,13 @@
             <input id="editClearWhen" type="checkbox" class="h-4 w-4" />
             <label for="editClearWhen" class="text-xs font-bold text-slate-600">Termin entfernen</label>
           </div>
-          
-          <div>
-  <label class="text-[11px] font-black uppercase text-slate-400">Notizen</label>
-  <textarea id="editNotes" rows="3"
-    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-    class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200"
-    placeholder="z.B. Grund / Status / nächster Schritt…"></textarea>
-</div>
 
+          <!-- ✅ Notizen nur im Bearbeiten-Fenster -->
           <div>
             <label class="text-[11px] font-black uppercase text-slate-400">Notizen</label>
             <textarea id="editNotes" rows="3"
               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+              class="mt-1 w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none border border-slate-200"
               placeholder="z.B. Grund / Status / nächster Schritt…"></textarea>
           </div>
         </div>
@@ -264,23 +258,22 @@
   </main>
 
   <script>
-    // ===== Storage (mit Migration, damit Aufgaben nicht "weg" sind) =====
-    const KEY = "taskhub_data_v1";
-    const OLD_KEYS = ["taskhub_final_with_prio_badge_v1", "myTaskHubData", "taskhub_data_v1"];
+    // ===== Storage: nimmt automatisch den Key, wo wirklich Daten liegen =====
+    const CANDIDATE_KEYS = [
+      "taskhub_final_with_prio_badge_v1",
+      "taskhub_data_v1",
+      "myTaskHubData"
+    ];
 
-    (function migrate(){
-      try{
-        const cur = localStorage.getItem(KEY);
-        if(cur && cur !== "[]") return;
-        for(const k of OLD_KEYS){
-          const old = localStorage.getItem(k);
-          if(old && old !== "[]"){
-            localStorage.setItem(KEY, old);
-            return;
-          }
-        }
-      }catch(e){}
-    })();
+    function pickKey(){
+      for (const k of CANDIDATE_KEYS){
+        const v = localStorage.getItem(k);
+        if (v && v !== "[]" && v !== "null") return k;
+      }
+      return "taskhub_data_v1";
+    }
+
+    const KEY = pickKey();
 
     const $ = (id) => document.getElementById(id);
 
@@ -424,7 +417,7 @@
       scheduleNextReminder();
       closeEditModal();
 
-      // Fokus weg, damit iOS nichts "reinschiebt"
+      // Fokus weg, damit iOS nichts irgendwo reinschiebt
       setTimeout(() => document.activeElement && document.activeElement.blur(), 0);
 
       toast(clearWhen ? "Termin entfernt ✅" : "Gespeichert ✅");
