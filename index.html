@@ -349,12 +349,14 @@ migrateIfNeeded();
     }
 
     function openEditModal(task){
-      editingTaskId = task.id;
+  editingTaskId = task.id;
 
-      $("editTitle").value = task.notes || "";
-      $("editProject").value = task.project || "Sonstiges";
-      $("editPrio").value = String(task.prio || 2);
-      $("editNotes").value = task.notes || "";
+  $("editTitle").value = task.title || "";
+  $("editProject").value = task.project || "Sonstiges";
+  $("editPrio").value = String(task.prio || 2);
+  $("editNotes").value = task.notes || "";
+}
+
 
       const parts = splitWhen(task.when);
       $("editDate").value = parts.date;
